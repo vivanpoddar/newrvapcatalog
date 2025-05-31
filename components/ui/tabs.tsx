@@ -12,34 +12,48 @@ const MultiSelectTabsContext = React.createContext<MultiSelectTabsContextType | 
 
 interface TabsProps {
   defaultValue?: string[]
+  value?: string[]
   onValueChange?: (values: string[]) => void
   children: React.ReactNode
   className?: string
 }
 
 const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(
-  ({ defaultValue = [], onValueChange, children, className, ...props }, ref) => {
+  ({ defaultValue = [], value, onValueChange, children, className, ...props }, ref) => {
     const [selectedValues, setSelectedValues] = React.useState<Set<string>>(
-      new Set(defaultValue)
+      new Set(value ?? defaultValue)
     )
 
-    const handleValueChange = React.useCallback((value: string) => {
-      setSelectedValues(prev => {
-        const newSet = new Set(prev)
-        if (newSet.has(value)) {
-          newSet.delete(value)
-        } else {
-          newSet.add(value)
-        }
-        onValueChange?.(Array.from(newSet))
-        return newSet
-      })
-    }, [onValueChange])
+    // Update internal state when controlled value changes
+    React.useEffect(() => {
+      if (value !== undefined) {
+        setSelectedValues(new Set(value))
+      }
+    }, [value])
+
+    const handleValueChange = React.useCallback((clickedValue: string) => {
+      const currentValues = value !== undefined ? new Set(value) : selectedValues
+      
+      const newSet = new Set(currentValues)
+      if (newSet.has(clickedValue)) {
+        newSet.delete(clickedValue)
+      } else {
+        newSet.add(clickedValue)
+      }
+      
+      const newArray = Array.from(newSet)
+      onValueChange?.(newArray)
+      
+      // Only update internal state if not controlled
+      if (value === undefined) {
+        setSelectedValues(newSet)
+      }
+    }, [onValueChange, value, selectedValues])
 
     const contextValue = React.useMemo(() => ({
-      selectedValues,
+      selectedValues: value !== undefined ? new Set(value) : selectedValues,
       onValueChange: handleValueChange
-    }), [selectedValues, handleValueChange])
+    }), [selectedValues, handleValueChange, value])
 
     return (
       <MultiSelectTabsContext.Provider value={contextValue}>
