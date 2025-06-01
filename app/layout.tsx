@@ -1,6 +1,8 @@
 import './globals.css';
+import "@radix-ui/themes/styles.css";
 
 import { Analytics } from '@vercel/analytics/react';
+import { Theme } from "@radix-ui/themes";
 
 export const metadata = {
   title: 'Next.js App Router + NextAuth + Tailwind CSS',
@@ -15,8 +17,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="flex min-h-screen w-full flex-col">{children}</body>
-      <Analytics />
+      <body className="flex min-h-screen w-full flex-col">
+        <Theme>{children}</Theme>
+        <Analytics />
+      </body>
     </html>
   );
 }
