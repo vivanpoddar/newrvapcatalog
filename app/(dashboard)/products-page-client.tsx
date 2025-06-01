@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Catalog from '../../components/catalog/catalog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -9,17 +10,85 @@ import { Slider } from '@/components/ui/slider';
 import { File, PlusCircle } from 'lucide-react';
 
 export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [selectedTabs, setSelectedTabs] = useState<string[]>([""]);
+  
+  // Separate state for categories (genres) and languages
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  
   const [yearRange, setYearRange] = useState<number[]>([1800, 2024]);
   const [tempYearRange, setTempYearRange] = useState<number[]>([1800, 2024]);
   const [isYearFilterActive, setIsYearFilterActive] = useState(false);
   const [searchCriteria, setSearchCriteria] = useState<string>("title");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  
+  // Individual search field states
+  const [titleSearchQuery, setTitleSearchQuery] = useState<string>("");
+  const [idSearchQuery, setIdSearchQuery] = useState<string>("");
+  const [authorSearchQuery, setAuthorSearchQuery] = useState<string>("");
+  
   const [activeSearchQueries, setActiveSearchQueries] = useState<Array<{id: string, criteria: string, query: string}>>([]);
   const [isSearchFilterActive, setIsSearchFilterActive] = useState(false);
 
   const yearFilterId = `year-${yearRange[0]}-${yearRange[1]}`;
   const searchFilterIds = activeSearchQueries.map(sq => `search-${sq.criteria}-${sq.query}`);
+
+  // Initialize state from URL parameters on component mount
+  useEffect(() => {
+    const currentTabs = searchParams.get('tabs');
+    const currentYearMin = searchParams.get('yearMin');
+    const currentYearMax = searchParams.get('yearMax');
+    const currentTitleSearch = searchParams.get('titleSearch');
+    const currentIdSearch = searchParams.get('idSearch');
+    const currentAuthorSearch = searchParams.get('authorSearch');
+    
+    // Initialize tabs - if no tabs parameter or tabs=All, set to [""]
+    if (!currentTabs || currentTabs === 'All') {
+      setSelectedTabs([""]);
+    } else {
+      const tabsArray = currentTabs.split(',').filter(Boolean);
+      setSelectedTabs(tabsArray);
+    }
+    
+    // Initialize year filter
+    if (currentYearMin && currentYearMax) {
+      const minYear = parseInt(currentYearMin);
+      const maxYear = parseInt(currentYearMax);
+      setYearRange([minYear, maxYear]);
+      setTempYearRange([minYear, maxYear]);
+      setIsYearFilterActive(true);
+    }
+    
+    // Initialize individual search fields
+    if (currentTitleSearch) {
+      setTitleSearchQuery(currentTitleSearch);
+    }
+    if (currentIdSearch) {
+      setIdSearchQuery(currentIdSearch);
+    }
+    if (currentAuthorSearch) {
+      setAuthorSearchQuery(currentAuthorSearch);
+    }
+    
+    // Initialize search queries from URL
+    const searchCriteria = searchParams.getAll('searchCriteria');
+    const searchQuery = searchParams.getAll('searchQuery');
+    if (searchCriteria.length > 0 && searchQuery.length > 0) {
+      const queries = searchCriteria.map((criteria, index) => ({
+        id: `${Date.now()}-${index}`,
+        criteria,
+        query: searchQuery[index] || ''
+      })).filter(sq => sq.query.trim());
+      
+      if (queries.length > 0) {
+        setActiveSearchQueries(queries);
+        setIsSearchFilterActive(true);
+      }
+    }
+  }, []); // Only run on mount
 
   const handleTabChange = useCallback((values: string[]) => {
     let filteredValues = values;
@@ -57,9 +126,17 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
       setSearchCriteria("title");
       setSearchQuery("");
       setActiveSearchQueries([]);
+      // Clear individual search fields
+      setTitleSearchQuery("");
+      setIdSearchQuery("");
+      setAuthorSearchQuery("");
+      // Clear separate category and language filters
+      setSelectedCategories([]);
+      setSelectedLanguages([]);
     }
     // If "All" is selected, clear all filters
     else if (filteredValues.includes("")) {
+      console.log('All tab selected - clearing all filters');
       setIsYearFilterActive(false);
       setYearRange([1800, 2024]);
       setTempYearRange([1800, 2024]);
@@ -67,6 +144,13 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
       setSearchCriteria("title");
       setSearchQuery("");
       setActiveSearchQueries([]);
+      // Clear individual search fields
+      setTitleSearchQuery("");
+      setIdSearchQuery("");
+      setAuthorSearchQuery("");
+      // Clear separate category and language filters
+      setSelectedCategories([]);
+      setSelectedLanguages([]);
     }
     
     console.log('Selected tabs:', filteredValues);
@@ -86,7 +170,8 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
     
     console.log('Publication year filter applied:', tempYearRange);
     console.log('Selected filters:', {
-      categories: [],
+      genres: [],
+      languages: [],
       yearRange: {
         min: tempYearRange[0],
         max: tempYearRange[1],
@@ -106,7 +191,8 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
     
     console.log('Publication year filter cleared');
     console.log('Selected filters:', {
-      categories: ["All"],
+      genres: ["All"],
+      languages: ["All"],
       yearRange: null,
       searchQueries: []
     });
@@ -158,7 +244,8 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
       setSelectedTabs([]);
       
       console.log('Current filter state after search applied:', {
-        categories: [],
+        genres: [],
+        languages: [],
         yearRange: null,
         searchQueries: [...activeSearchQueries, newSearchQuery].map(sq => ({
           id: sq.id,
@@ -178,13 +265,21 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
     setSearchCriteria("");
     setSearchQuery("");
     setActiveSearchQueries([]);
+    // Clear individual search fields
+    setTitleSearchQuery("");
+    setIdSearchQuery("");
+    setAuthorSearchQuery("");
+    // Clear separate category and language filters
+    setSelectedCategories([]);
+    setSelectedLanguages([]);
     
     // Return to "All" when search filter is cleared
     setSelectedTabs([""]);
     
     console.log('All search filters cleared');
     console.log('Selected filters:', {
-      categories: ["All"],
+      genres: ["All"],
+      languages: ["All"],
       yearRange: null,
       searchQueries: []
     });
@@ -197,19 +292,85 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
       // If no search queries left, deactivate search filter
       if (updated.length === 0) {
         setIsSearchFilterActive(false);
-        setSelectedTabs([""]);
+        // Check if any other filters are active, if not revert to "All"
+        if (!isYearFilterActive && (selectedTabs.length === 0 || selectedTabs.every(tab => tab === ""))) {
+          setSelectedTabs([""]);
+        }
       }
       
       console.log('Search query removed:', queryId);
       console.log('Remaining search queries:', updated);
       return updated;
     });
-  }, []);
+  }, [isYearFilterActive, selectedTabs]);
+
+  // Individual search field handlers
+  const handleTitleSearchChange = useCallback((value: string) => {
+    setTitleSearchQuery(value);
+    // If clearing the search and no other filters are active, revert to "All"
+    if (!value.trim() && !idSearchQuery.trim() && !authorSearchQuery.trim() && 
+        !isYearFilterActive && !isSearchFilterActive && 
+        (selectedTabs.length === 0 || selectedTabs.every(tab => tab === ""))) {
+      setSelectedTabs([""]);
+    }
+  }, [idSearchQuery, authorSearchQuery, isYearFilterActive, isSearchFilterActive, selectedTabs]);
+
+  const handleIdSearchChange = useCallback((value: string) => {
+    setIdSearchQuery(value);
+    // If clearing the search and no other filters are active, revert to "All"
+    if (!value.trim() && !titleSearchQuery.trim() && !authorSearchQuery.trim() && 
+        !isYearFilterActive && !isSearchFilterActive && 
+        (selectedTabs.length === 0 || selectedTabs.every(tab => tab === ""))) {
+      setSelectedTabs([""]);
+    }
+  }, [titleSearchQuery, authorSearchQuery, isYearFilterActive, isSearchFilterActive, selectedTabs]);
+
+  const handleAuthorSearchChange = useCallback((value: string) => {
+    setAuthorSearchQuery(value);
+    // If clearing the search and no other filters are active, revert to "All"
+    if (!value.trim() && !titleSearchQuery.trim() && !idSearchQuery.trim() && 
+        !isYearFilterActive && !isSearchFilterActive && 
+        (selectedTabs.length === 0 || selectedTabs.every(tab => tab === ""))) {
+      setSelectedTabs([""]);
+    }
+  }, [titleSearchQuery, idSearchQuery, isYearFilterActive, isSearchFilterActive, selectedTabs]);
+
+  // Handlers for separate category and language filters
+  const handleCategoryChange = useCallback((categoryCode: string) => {
+    setSelectedCategories(prev => {
+      const updated = prev.includes(categoryCode) 
+        ? prev.filter(cat => cat !== categoryCode)
+        : [...prev, categoryCode];
+      
+      // If all categories are deselected and no other filters are active, revert to "All"
+      if (updated.length === 0 && selectedLanguages.length === 0 && !isYearFilterActive && !isSearchFilterActive) {
+        setSelectedTabs([""]);
+      }
+      
+      return updated;
+    });
+  }, [selectedLanguages, isYearFilterActive, isSearchFilterActive]);
+
+  const handleLanguageChange = useCallback((languageCode: string) => {
+    setSelectedLanguages(prev => {
+      const updated = prev.includes(languageCode)
+        ? prev.filter(lang => lang !== languageCode)
+        : [...prev, languageCode];
+      
+      // If all languages are deselected and no other filters are active, revert to "All"
+      if (updated.length === 0 && selectedCategories.length === 0 && !isYearFilterActive && !isSearchFilterActive) {
+        setSelectedTabs([""]);
+      }
+      
+      return updated;
+    });
+  }, [selectedCategories, isYearFilterActive, isSearchFilterActive]);
 
   // Log combined filter state whenever filters change
   useEffect(() => {
     const activeFilters: {
-      categories: string[];
+      genres: string[];
+      languages: string[];
       yearRange: {
         min: number;
         max: number;
@@ -221,15 +382,26 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
         query: string;
       }>;
     } = {
-      categories: [],
+      genres: [],
+      languages: [],
       yearRange: null,
       searchQueries: []
     };
     
+    // Define genre and language codes
+    const genreCodes = ["CLB", "DDL", "DMW", "GIT", "HIS", "HMS", "KID", "MNP", "ODL", "OPH", "PIL", "SCI", "SER", "SHR", "SMH", "SNK", "SPD", "SRK", "VED", "VIV", "UVO"];
+    const languageCodes = ["E", "S", "H", "B", "T"];
+    
     if (selectedTabs.length > 0 && !selectedTabs.includes("")) {
-      activeFilters.categories = [...selectedTabs];
+      // Separate selected tabs into genres and languages
+      const selectedGenres = selectedTabs.filter(tab => genreCodes.includes(tab));
+      const selectedLanguages = selectedTabs.filter(tab => languageCodes.includes(tab));
+      
+      activeFilters.genres = selectedGenres.length > 0 ? selectedGenres : [];
+      activeFilters.languages = selectedLanguages.length > 0 ? selectedLanguages : [];
     } else if (selectedTabs.includes("")) {
-      activeFilters.categories = ["All"];
+      activeFilters.genres = ["All"];
+      activeFilters.languages = ["All"];
     }
     
     if (isYearFilterActive) {
@@ -249,108 +421,88 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
     }
     
     console.log('All active filters:', activeFilters);
-  }, [selectedTabs, isYearFilterActive, yearFilterId, isSearchFilterActive, searchFilterIds]);
+    console.log('Individual search fields:', {
+      titleSearch: titleSearchQuery,
+      idSearch: idSearchQuery,
+      authorSearch: authorSearchQuery
+    });
+    console.log('Separated filter state:', {
+      selectedCategories,
+      selectedLanguages,
+      selectedTabs: selectedTabs
+    });
+  }, [selectedTabs, isYearFilterActive, yearFilterId, isSearchFilterActive, searchFilterIds, titleSearchQuery, idSearchQuery, authorSearchQuery, selectedCategories, selectedLanguages]);
 
-  // Apply filtering logic based on the new dictionary structure
-  const filteredCatalog = catalog.filter(item => {
-    // Get current active filters
-    const activeFilters: {
-      categories: string[];
-      yearRange: {
-        min: number;
-        max: number;
-        id: string;
-      } | null;
-      searchQueries: Array<{
-        id: string;
-        criteria: string;
-        query: string;
-      }>;
-    } = {
-      categories: [],
-      yearRange: null,
-      searchQueries: []
-    };
+  // Monitor filter states and revert to "All" when no filters are active
+  useEffect(() => {
+    const hasSpecificTabs = selectedTabs.length > 0 && !selectedTabs.includes("");
+    const hasSearchFields = titleSearchQuery.trim() || idSearchQuery.trim() || authorSearchQuery.trim();
+    const hasCategories = selectedCategories.length > 0;
+    const hasLanguages = selectedLanguages.length > 0;
     
-    if (selectedTabs.length > 0 && !selectedTabs.includes("")) {
-      activeFilters.categories = [...selectedTabs];
-    } else if (selectedTabs.includes("")) {
-      activeFilters.categories = ["All"];
+    const hasAnyActiveFilter = isYearFilterActive || isSearchFilterActive || hasSpecificTabs || hasSearchFields || hasCategories || hasLanguages;
+    
+    // If no filters are active and we're not already on "All", revert to "All"
+    if (!hasAnyActiveFilter && !selectedTabs.includes("")) {
+      console.log('No filters active, reverting to "All" tab');
+      setSelectedTabs([""]);
+    }
+  }, [isYearFilterActive, isSearchFilterActive, selectedTabs, titleSearchQuery, idSearchQuery, authorSearchQuery, selectedCategories, selectedLanguages]);
+
+  // Function to update URL with current filters
+  const updateURLParams = useCallback(() => {
+    const params = new URLSearchParams();
+    
+    // Add current tab selections - always include tabs parameter for proper state management
+    if (selectedTabs.includes("") || selectedTabs.length === 0) {
+      // When "All" is selected or no tabs selected, explicitly set tabs=All
+      params.set('tabs', 'All');
+    } else {
+      // Add specific tab selections
+      selectedTabs.forEach(tab => params.append('tabs', tab));
     }
     
+    // Add year filter
     if (isYearFilterActive) {
-      activeFilters.yearRange = {
-        min: yearRange[0],
-        max: yearRange[1],
-        id: yearFilterId
-      };
+      params.set('yearMin', yearRange[0].toString());
+      params.set('yearMax', yearRange[1].toString());
     }
     
-    if (isSearchFilterActive) {
-      activeFilters.searchQueries = activeSearchQueries.map(sq => ({
-        id: sq.id,
-        criteria: sq.criteria,
-        query: sq.query
-      }));
-    }
-
-    // Apply category filter
-    if (activeFilters.categories.length > 0 && !activeFilters.categories.includes("All")) {
-      const itemCategory = item.category?.toString().trim();
-      if (!itemCategory || !activeFilters.categories.includes(itemCategory)) {
-        return false;
-      }
-    }
-
-    // Apply year range filter
-    if (activeFilters.yearRange) {
-      const itemYear = parseInt(item.pubyear?.toString() || "0");
-      if (itemYear < activeFilters.yearRange.min || itemYear > activeFilters.yearRange.max) {
-        return false;
-      }
-    }
-
-    // Apply search queries filter
-    if (activeFilters.searchQueries.length > 0) {
-      const matchesAllQueries = activeFilters.searchQueries.every(searchQuery => {
-        const { criteria, query } = searchQuery;
-        const searchValue = query.toLowerCase().trim();
-        
-        if (!searchValue) return true;
-        
-        let fieldValue = "";
-        switch (criteria) {
-          case "title":
-            fieldValue = item.title?.toString().toLowerCase() || "";
-            break;
-          case "category":
-            fieldValue = item.category?.toString().toLowerCase() || "";
-            break;
-          case "language":
-            fieldValue = item.language?.toString().toLowerCase() || "";
-            break;
-          case "author":
-            const firstName = item.firstname?.toString().toLowerCase() || "";
-            const lastName = item.lastname?.toString().toLowerCase() || "";
-            fieldValue = `${firstName} ${lastName}`.trim();
-            break;
-          case "year":
-            fieldValue = item.pubyear?.toString() || "";
-            break;
-          default:
-            return true;
-        }
-        
-        return fieldValue.includes(searchValue);
+    // Add search queries
+    if (isSearchFilterActive && activeSearchQueries.length > 0) {
+      activeSearchQueries.forEach(sq => {
+        params.append('searchCriteria', sq.criteria);
+        params.append('searchQuery', sq.query);
       });
-      
-      if (!matchesAllQueries) {
-        return false;
-      }
     }
+    
+    // Add individual search fields
+    if (titleSearchQuery.trim()) {
+      params.set('titleSearch', titleSearchQuery.trim());
+    }
+    if (idSearchQuery.trim()) {
+      params.set('idSearch', idSearchQuery.trim());
+    }
+    if (authorSearchQuery.trim()) {
+      params.set('authorSearch', authorSearchQuery.trim());
+    }
+    
+    // Update URL without page reload
+    const newURL = params.toString() ? `?${params.toString()}` : '?tabs=All';
+    router.replace(newURL, { scroll: false });
+  }, [router, selectedTabs, isYearFilterActive, yearRange, isSearchFilterActive, activeSearchQueries, titleSearchQuery, idSearchQuery, authorSearchQuery]);
 
-    return true;
-  });
+  // Update URL when filters change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      updateURLParams();
+    }, 300); // Debounce URL updates
+    
+    return () => clearTimeout(timeoutId);
+  }, [updateURLParams]);
+
+  // Remove client-side filtering since data is now pre-filtered on server
+  const filteredCatalog = catalog;
 
   return (
       <Tabs value={selectedTabs} onValueChange={handleTabChange}>
@@ -579,33 +731,38 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
 
           <div className='mb-2'>
               <TabsList>
-                  <TabsTrigger value="CLB">CLB</TabsTrigger>
-                  <TabsTrigger value="DDL">DDL</TabsTrigger>
-                  <TabsTrigger value="DMW">DMW</TabsTrigger>
-                  <TabsTrigger value="GIT">GIT</TabsTrigger>
-                  <TabsTrigger value="HIS">HIS</TabsTrigger>
-                  <TabsTrigger value="HMS">HMS</TabsTrigger>
-                  <TabsTrigger value="KID">KID</TabsTrigger>
-                  <TabsTrigger value="MNP">MNP</TabsTrigger>
-                  <TabsTrigger value="ODL">ODL</TabsTrigger>
-                  <TabsTrigger value="OPH">OPH</TabsTrigger>
-                  <TabsTrigger value="PIL">PIL</TabsTrigger>
-                  <TabsTrigger value="SCI">SCI</TabsTrigger>
-                  <TabsTrigger value="SER">SER</TabsTrigger>
-                  <TabsTrigger value="SHR">SHR</TabsTrigger>
-                  <TabsTrigger value="SMH">SMH</TabsTrigger>
-                  <TabsTrigger value="SNK">SNK</TabsTrigger>
-                  <TabsTrigger value="SPD">SPD</TabsTrigger>
-                  <TabsTrigger value="SRK">SRK</TabsTrigger>
-                  <TabsTrigger value="VED">VED</TabsTrigger>
-                  <TabsTrigger value="VIV">VIV</TabsTrigger>
-                  <TabsTrigger value="UVO">UVO</TabsTrigger>
-                  <span className="mx-1 h-full w-px bg-border self-center" />
-                  <TabsTrigger value="E">EN</TabsTrigger>
-                  <TabsTrigger value="S">SA</TabsTrigger>
-                  <TabsTrigger value="H">HI</TabsTrigger>
-                  <TabsTrigger value="B">BN</TabsTrigger>
-                  <TabsTrigger value="T">TA</TabsTrigger>
+                  {/* Genre/Category Tabs */}
+                  <TabsTrigger value="CLB" title="Culture & Literature Bengali">CLB</TabsTrigger>
+                  <TabsTrigger value="DDL" title="Devotional Drama & Literature">DDL</TabsTrigger>
+                  <TabsTrigger value="DMW" title="Devotional Music & Worship">DMW</TabsTrigger>
+                  <TabsTrigger value="GIT" title="Gita">GIT</TabsTrigger>
+                  <TabsTrigger value="HIS" title="History">HIS</TabsTrigger>
+                  <TabsTrigger value="HMS" title="Hymns & Sacred Music">HMS</TabsTrigger>
+                  <TabsTrigger value="KID" title="Kids & Children">KID</TabsTrigger>
+                  <TabsTrigger value="MNP" title="Mahatma & Nonviolent Philosophy">MNP</TabsTrigger>
+                  <TabsTrigger value="ODL" title="Oriya Devotional Literature">ODL</TabsTrigger>
+                  <TabsTrigger value="OPH" title="Oriental Philosophy">OPH</TabsTrigger>
+                  <TabsTrigger value="PIL" title="Pilgrimage">PIL</TabsTrigger>
+                  <TabsTrigger value="SCI" title="Science">SCI</TabsTrigger>
+                  <TabsTrigger value="SER" title="Sermons">SER</TabsTrigger>
+                  <TabsTrigger value="SHR" title="Shrimad Bhagavatam">SHR</TabsTrigger>
+                  <TabsTrigger value="SMH" title="Sanskrit Mantras & Hymns">SMH</TabsTrigger>
+                  <TabsTrigger value="SNK" title="Sanskrit">SNK</TabsTrigger>
+                  <TabsTrigger value="SPD" title="Spiritual Development">SPD</TabsTrigger>
+                  <TabsTrigger value="SRK" title="Sri Krishna">SRK</TabsTrigger>
+                  <TabsTrigger value="VED" title="Vedic Literature">VED</TabsTrigger>
+                  <TabsTrigger value="VIV" title="Vivekananda">VIV</TabsTrigger>
+                  <TabsTrigger value="UVO" title="Upanishads & Vedic Ontology">UVO</TabsTrigger>
+                  
+                  {/* Visual separator between genres and languages */}
+                  <span className="mx-2 h-full w-px bg-border self-center" />
+                  
+                  {/* Language Tabs */}
+                  <TabsTrigger value="E" title="English">EN</TabsTrigger>
+                  <TabsTrigger value="S" title="Sanskrit">SA</TabsTrigger>
+                  <TabsTrigger value="H" title="Hindi">HI</TabsTrigger>
+                  <TabsTrigger value="B" title="Bengali">BN</TabsTrigger>
+                  <TabsTrigger value="T" title="Tamil">TA</TabsTrigger>
               </TabsList>
           </div>
 
