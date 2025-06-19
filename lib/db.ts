@@ -12,6 +12,12 @@ export async function getData(filters: {
     pageSize?: number;
 }) {
     const supabase = await createClient();
+    
+    // Get current user for checkout status
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUserId = user?.id;
+    
+    // Base query - we'll process checkout status after getting the data
     let query = supabase.from('catalog').select("*");
 
     const isAllSelected = (filters.genres && filters.genres.includes("All")) || 
@@ -38,8 +44,33 @@ export async function getData(filters: {
         // Get paginated data with ordering
         const { data: catalog } = await query.order('number', { ascending: true }).range(from, to);
         
+        // Get checkout information for all books if user is authenticated
+        let checkoutsMap = new Map();
+        if (currentUserId && catalog) {
+            const bookNumbers = catalog.map(book => book.number);
+            const { data: checkouts } = await supabase
+                .from('checkouts')
+                .select('book_id, user_id, checked_out_at, returned_at')
+                .in('book_id', bookNumbers)
+                .is('returned_at', null); // Only get active checkouts
+            
+            if (checkouts) {
+                checkouts.forEach(checkout => {
+                    checkoutsMap.set(checkout.book_id, checkout);
+                });
+            }
+        }
+        
+        // Add checkout status to each book
+        const catalogWithCheckoutStatus = catalog?.map(book => ({
+            ...book,
+            isCheckedOut: checkoutsMap.has(book.number),
+            checkedOutByCurrentUser: currentUserId && checkoutsMap.has(book.number) && 
+                checkoutsMap.get(book.number)?.user_id === currentUserId
+        })) || [];
+        
         return {
-            data: catalog || [],
+            data: catalogWithCheckoutStatus,
             pagination: {
                 page,
                 pageSize,
@@ -175,8 +206,33 @@ export async function getData(filters: {
     // Apply pagination to the main query and fetch data with ordering
     const { data: catalog } = await query.order('number', { ascending: true }).range(from, to);
     
+    // Get checkout information for all books if user is authenticated
+    let checkoutsMap = new Map();
+    if (currentUserId && catalog) {
+        const bookNumbers = catalog.map(book => book.number);
+        const { data: checkouts } = await supabase
+            .from('checkouts')
+            .select('book_id, user_id, checked_out_at, returned_at')
+            .in('book_id', bookNumbers)
+            .is('returned_at', null); // Only get active checkouts
+        
+        if (checkouts) {
+            checkouts.forEach(checkout => {
+                checkoutsMap.set(checkout.book_id, checkout);
+            });
+        }
+    }
+    
+    // Add checkout status to each book
+    const catalogWithCheckoutStatus = catalog?.map(book => ({
+        ...book,
+        isCheckedOut: checkoutsMap.has(book.number),
+        checkedOutByCurrentUser: currentUserId && checkoutsMap.has(book.number) && 
+            checkoutsMap.get(book.number)?.user_id === currentUserId
+    })) || [];
+    
     return {
-        data: catalog || [],
+        data: catalogWithCheckoutStatus,
         pagination: {
             page,
             pageSize,

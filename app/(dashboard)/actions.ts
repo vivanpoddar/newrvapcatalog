@@ -176,3 +176,141 @@ export async function createProduct(formData: FormData) {
     };
   }
 }
+
+export async function checkoutBook(formData: FormData) {
+  try {
+    const bookId = formData.get('bookId') as string;
+    if (!bookId) {
+      throw new Error('Book ID is required');
+    }
+
+    const { createClient } = await import('@/utils/supabase/server');
+    const supabase = await createClient();
+    
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return { 
+        success: false, 
+        error: 'User not authenticated' 
+      };
+    }
+
+    // Parse book ID to integer
+    const bookNumber = parseInt(bookId);
+    if (isNaN(bookNumber)) {
+      return { 
+        success: false, 
+        error: 'Invalid book ID' 
+      };
+    }
+
+    // Check if book is already checked out by this user
+    const { data: existingCheckout, error: checkError } = await supabase
+      .from('checkouts')
+      .select('*')
+      .eq('book_id', bookNumber)
+      .eq('user_id', user.id)
+      .is('returned_at', null)
+      .single();
+
+    if (!checkError && existingCheckout) {
+      return { 
+        success: false, 
+        error: 'You have already checked out this book' 
+      };
+    }
+
+    // Check if book is already checked out by someone else
+    const { data: otherCheckout, error: otherError } = await supabase
+      .from('checkouts')
+      .select('*')
+      .eq('book_id', bookNumber)
+      .is('returned_at', null)
+      .single();
+
+    if (!otherError && otherCheckout) {
+      return { 
+        success: false, 
+        error: 'This book is already checked out by another user' 
+      };
+    }
+
+    // Create checkout record
+    const { error: insertError } = await supabase
+      .from('checkouts')
+      .insert({
+        book_id: bookNumber,
+        user_id: user.id,
+        checked_out_at: new Date().toISOString()
+      });
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    revalidatePath('/');
+    return { success: true };
+
+  } catch (error) {
+    console.error('Checkout error:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to checkout book' 
+    };
+  }
+}
+
+export async function returnBook(formData: FormData) {
+  try {
+    const bookId = formData.get('bookId') as string;
+    if (!bookId) {
+      throw new Error('Book ID is required');
+    }
+
+    const { createClient } = await import('@/utils/supabase/server');
+    const supabase = await createClient();
+    
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return { 
+        success: false, 
+        error: 'User not authenticated' 
+      };
+    }
+
+    // Parse book ID to integer
+    const bookNumber = parseInt(bookId);
+    if (isNaN(bookNumber)) {
+      return { 
+        success: false, 
+        error: 'Invalid book ID' 
+      };
+    }
+
+    // Update checkout record to mark as returned
+    const { error: updateError } = await supabase
+      .from('checkouts')
+      .update({ 
+        returned_at: new Date().toISOString() 
+      })
+      .eq('book_id', bookNumber)
+      .eq('user_id', user.id)
+      .is('returned_at', null);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    revalidatePath('/');
+    return { success: true };
+
+  } catch (error) {
+    console.error('Return error:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to return book' 
+    };
+  }
+}

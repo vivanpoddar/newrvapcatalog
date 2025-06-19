@@ -12,8 +12,8 @@ import { Modal } from "../ui/modal";
 import { ConfirmDeleteModal } from "../ui/confirm-delete-modal";
 import { EditItemModal, EditableItem } from "../ui/edit-item-modal";
 import { useState } from "react";
-import { PencilIcon, TrashIcon } from "../icons";
-import { deleteProduct, updateProduct } from "../../app/(dashboard)/actions";
+import { PencilIcon, TrashIcon, CheckoutIcon, ReturnIcon } from "../icons";
+import { deleteProduct, updateProduct, checkoutBook, returnBook } from "../../app/(dashboard)/actions";
 
 interface Order {
   number: number;
@@ -29,6 +29,8 @@ interface Order {
   last: string;
   rev: string | string[]; // Updated to handle both string and array types
   editedtranslated: string | string[] | null; // Add missing field
+  isCheckedOut?: boolean; // Checkout status
+  checkedOutByCurrentUser?: boolean; // Whether current user has checked it out
 }
 
 export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?: boolean }) {
@@ -39,6 +41,7 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
   const [selectedItem, setSelectedItem] = useState<EditableItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [checkoutStates, setCheckoutStates] = useState<{ [key: string]: boolean }>({});
 
   // Since data is already a flat array when passed from products-page-client,
   // we don't need to navigate nested properties
@@ -58,7 +61,9 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
         first: item.firstname ?? "",
         last: item.lastname ?? "",
         rev: item.rev ?? "",
-        editedtranslated: item.editedtranslated ?? ""
+        editedtranslated: item.editedtranslated ?? "",
+        isCheckedOut: item.isCheckedOut ?? false,
+        checkedOutByCurrentUser: item.checkedOutByCurrentUser ?? false
       }))
     : [];
 
@@ -166,6 +171,50 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
     }
   };
 
+  const handleCheckout = async (bookId: string) => {
+    setCheckoutStates(prev => ({ ...prev, [bookId]: true }));
+    try {
+      const formData = new FormData();
+      formData.append('bookId', bookId);
+      
+      const result = await checkoutBook(formData);
+      
+      if (result.success) {
+        // Refresh the page to show updated data
+        window.location.reload();
+      } else {
+        alert(`Failed to checkout book: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('An error occurred while checking out the book');
+    } finally {
+      setCheckoutStates(prev => ({ ...prev, [bookId]: false }));
+    }
+  };
+
+  const handleReturn = async (bookId: string) => {
+    setCheckoutStates(prev => ({ ...prev, [bookId]: true }));
+    try {
+      const formData = new FormData();
+      formData.append('bookId', bookId);
+      
+      const result = await returnBook(formData);
+      
+      if (result.success) {
+        // Refresh the page to show updated data
+        window.location.reload();
+      } else {
+        alert(`Failed to return book: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Return error:', error);
+      alert('An error occurred while returning the book');
+    } finally {
+      setCheckoutStates(prev => ({ ...prev, [bookId]: false }));
+    }
+  };
+
   return (
     <div className="overflow-hidden bg-white border-[#e5e7eb]">
       {/* Pagination info header */}
@@ -260,6 +309,12 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                 >
                   Rev.
                 </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
+                  Status
+                </TableCell>
                 {isAdmin && (
                   <>
                     <TableCell
@@ -348,6 +403,31 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                       : order.editedtranslated)
                     }
                     </div>
+                  </TableCell>
+                  <TableCell className="py-1 px-1">
+                    {order.checkedOutByCurrentUser ? (
+                      <div 
+                        className={`py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ${
+                          checkoutStates[order.number.toString()] ? 'opacity-50' : 'hover:bg-blue-500'
+                        }`}
+                        onClick={() => !checkoutStates[order.number.toString()] && handleReturn(order.number.toString())}
+                      >
+                        <ReturnIcon height={16} color="#6b7280"></ReturnIcon>
+                      </div>
+                    ) : order.isCheckedOut ? (
+                      <div className="py-1 border-[#6b7280] border rounded flex justify-center items-center text-xs text-gray-500">
+                        Checked Out
+                      </div>
+                    ) : (
+                      <div 
+                        className={`py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ${
+                          checkoutStates[order.number.toString()] ? 'opacity-50' : 'hover:bg-green-500'
+                        }`}
+                        onClick={() => !checkoutStates[order.number.toString()] && handleCheckout(order.number.toString())}
+                      >
+                        <CheckoutIcon height={16} color="#6b7280"></CheckoutIcon>
+                      </div>
+                    )}
                   </TableCell>
                   {isAdmin && (
                     <>
