@@ -6,6 +6,7 @@ import { createClient } from '../../utils/supabase/server';
 import Catalog from '../../components/catalog/catalog';
 import ProductsPageClient from './products-page-client';
 import { getData } from '@/lib/db';
+import { checkUserAdmin } from '@/lib/auth-utils';
 
 // Extract filter state function
 async function extractFilters(searchParams?: { [key: string]: string | string[] | undefined }) {
@@ -96,6 +97,7 @@ export default async function ProductsPage({
   const resolvedSearchParams = await searchParams;
   const filters = await extractFilters(resolvedSearchParams);
   const catalog = await getData(filters);
+  const isAdmin = await checkUserAdmin();
 
-  return <ProductsPageClient catalog={catalog || []} />;
+  return <ProductsPageClient catalog={catalog || []} isAdmin={isAdmin} />;
 }

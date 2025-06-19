@@ -10,7 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import { File, PlusCircle } from 'lucide-react';
 import { CreateItemModal } from "@/components/ui/create-item-modal";
 
-export default function ProductsPageClient({ catalog }: { catalog: any }) {
+export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any; isAdmin: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -821,12 +821,14 @@ export default function ProductsPageClient({ catalog }: { catalog: any }) {
                           Export Catalog
                       </span>
                   </Button>
-                  <Button size="sm" className="h-8 gap-1" onClick={() => setCreateModalOpen(true)}>
-                      <PlusCircle className="h-3.5 w-3.5" />
-                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                          Add Book
-                      </span>
-                  </Button>
+                  {isAdmin && (
+                    <Button size="sm" className="h-8 gap-1" onClick={() => setCreateModalOpen(true)}>
+                        <PlusCircle className="h-3.5 w-3.5" />
+                        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                            Add Book
+                        </span>
+                    </Button>
+                  )}
               </div>
           </div>
 
@@ -968,7 +970,7 @@ export default function ProductsPageClient({ catalog }: { catalog: any }) {
               </div>
           </div>
 
-          <Catalog data={filteredCatalog}></Catalog>
+          <Catalog data={filteredCatalog} isAdmin={isAdmin}></Catalog>
 
           <CreateItemModal
             isOpen={isCreateModalOpen}

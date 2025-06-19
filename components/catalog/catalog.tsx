@@ -31,7 +31,7 @@ interface Order {
   editedtranslated: string | string[] | null; // Add missing field
 }
 
-export default function Catalog({ data }: { data: any }) {
+export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?: boolean }) {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -260,6 +260,22 @@ export default function Catalog({ data }: { data: any }) {
                 >
                   Rev.
                 </TableCell>
+                {isAdmin && (
+                  <>
+                    <TableCell
+                      isHeader
+                      className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Edit
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Delete
+                    </TableCell>
+                  </>
+                )}
               </TableRow>
             </TableHeader>
 
@@ -333,22 +349,26 @@ export default function Catalog({ data }: { data: any }) {
                     }
                     </div>
                   </TableCell>
-                  <TableCell className="py-1 px-1">
-                  <div 
-                    className="hover:bg-yellow-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300"
-                    onClick={() => handleEdit(order)}
-                  >
-                    <PencilIcon height={16} color="#6b7280"></PencilIcon>
-                  </div>
-                  </TableCell>
-                  <TableCell className="py-1 pr-1">
-                  <div 
-                    className="hover:bg-red-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300"
-                    onClick={() => handleDelete(order.id, order.title)}
-                  >
-                    <TrashIcon height={16} color="#6b7280"></TrashIcon>
-                  </div>
-                  </TableCell>
+                  {isAdmin && (
+                    <>
+                      <TableCell className="py-1 px-1">
+                      <div 
+                        className="hover:bg-yellow-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer"
+                        onClick={() => handleEdit(order)}
+                      >
+                        <PencilIcon height={16} color="#6b7280"></PencilIcon>
+                      </div>
+                      </TableCell>
+                      <TableCell className="py-1 pr-1">
+                      <div 
+                        className="hover:bg-red-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer"
+                        onClick={() => handleDelete(order.id, order.title)}
+                      >
+                        <TrashIcon height={16} color="#6b7280"></TrashIcon>
+                      </div>
+                      </TableCell>
+                    </>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

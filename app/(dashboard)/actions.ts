@@ -1,10 +1,20 @@
 'use server';
 
 import { deleteProductById, updateProductById, createProduct as createProductDB } from '@/lib/db';
+import { checkUserAdmin } from '@/lib/auth-utils';
 import { revalidatePath } from 'next/cache';
 
 export async function deleteProduct(formData: FormData) {
   try {
+    // Check if user is admin
+    const isAdmin = await checkUserAdmin();
+    if (!isAdmin) {
+      return { 
+        success: false, 
+        error: 'Unauthorized: Only admins can delete products' 
+      };
+    }
+
     const id = formData.get('id') as string;
     if (!id) {
       throw new Error('Product ID is required');
@@ -25,6 +35,15 @@ export async function deleteProduct(formData: FormData) {
 
 export async function updateProduct(formData: FormData) {
   try {
+    // Check if user is admin
+    const isAdmin = await checkUserAdmin();
+    if (!isAdmin) {
+      return { 
+        success: false, 
+        error: 'Unauthorized: Only admins can update products' 
+      };
+    }
+
     const id = formData.get('id') as string;
     if (!id) {
       throw new Error('Product ID is required');
@@ -87,6 +106,15 @@ export async function updateProduct(formData: FormData) {
 
 export async function createProduct(formData: FormData) {
   try {
+    // Check if user is admin
+    const isAdmin = await checkUserAdmin();
+    if (!isAdmin) {
+      return { 
+        success: false, 
+        error: 'Unauthorized: Only admins can create products' 
+      };
+    }
+
     // Get all form data and build create object
     const title = formData.get('title') as string;
     if (!title || !title.trim()) {
