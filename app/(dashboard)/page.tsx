@@ -16,10 +16,29 @@ async function extractFilters(searchParams?: { [key: string]: string | string[] 
     searchQueries: [] as Array<{ criteria: string; query: string }>,
     titleSearch: '',
     idSearch: '',
-    authorSearch: ''
+    authorSearch: '',
+    page: 1,
+    pageSize: 100
   };
 
   if (!searchParams) return filters;
+
+  // Extract pagination parameters
+  const page = searchParams.page;
+  if (page && typeof page === 'string') {
+    const pageNum = parseInt(page);
+    if (!isNaN(pageNum) && pageNum > 0) {
+      filters.page = pageNum;
+    }
+  }
+
+  const pageSize = searchParams.pageSize;
+  if (pageSize && typeof pageSize === 'string') {
+    const pageSizeNum = parseInt(pageSize);
+    if (!isNaN(pageSizeNum) && pageSizeNum > 0) {
+      filters.pageSize = pageSizeNum;
+    }
+  }
 
   // Extract tab selections (genres and languages)
   const selectedTabs = searchParams.tabs;

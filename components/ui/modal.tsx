@@ -46,11 +46,11 @@ export const Modal: React.FC<ModalProps> = ({
       aria-modal="true"
     >
       <div className="fixed inset-0 bg-black opacity-50" onClick={onClose}></div>
-      <div ref={modalRef} className="relative bg-white rounded-lg shadow dark:bg-gray-700 p-4 w-full max-w-2xl">
+      <div ref={modalRef} className="relative bg-white rounded-lg shadow p-4 w-full max-w-2xl">
         {showCloseButton && (
           <button
             type="button"
-            className="absolute top-2 right-2 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+            className="absolute top-2 right-2 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 flex justify-center items-center"
             onClick={onClose}
           >
             <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">

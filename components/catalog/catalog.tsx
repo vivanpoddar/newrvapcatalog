@@ -9,29 +9,39 @@ import {
 } from "../ui/table";
 
 import { Modal } from "../ui/modal";
+import { ConfirmDeleteModal } from "../ui/confirm-delete-modal";
+import { EditItemModal, EditableItem } from "../ui/edit-item-modal";
 import { useState } from "react";
 import { PencilIcon, TrashIcon } from "../icons";
+import { deleteProduct, updateProduct } from "../../app/(dashboard)/actions";
 
 interface Order {
   number: number;
   title: string;
   category: string;
-  language: string;
+  language: string | string[]; // Updated to handle both string and array types
   count: number;
   categoryCount: number;
   id: string;
   year: number;
   first: string;
   last: string;
-  rev: string;
+  rev: string | string[]; // Updated to handle both string and array types
+  editedtranslated: string | string[] | null; // Add missing field
 }
 
 export default function Catalog(data: any) {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedOrderTitle, setSelectedOrderTitle] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<EditableItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-  const tableData: Order[] = Array.isArray(data?.data)
-    ? data.data.map((item: any) => ({
+  const actualData = data?.data?.data || data?.data || [];
+  const tableData: Order[] = Array.isArray(actualData)
+    ? actualData.map((item: any) => ({
         number: item.number ?? "",
         title: item.title ?? "",
         category: item.category ?? "",
@@ -42,26 +52,135 @@ export default function Catalog(data: any) {
         year: item.pubyear ?? "",
         first: item.firstname ?? "",
         last: item.lastname ?? "",
-        rev: item.rev ?? ""
+        rev: item.rev ?? "",
+        editedtranslated: item.editedtranslated ?? ""
       }))
     : [];
 
-  const handleEdit = (id: string) => {
-    setSelectedOrderId(id);
+  // Extract pagination info if available
+  const paginationInfo = data?.data?.pagination || data?.pagination || null;
+  const currentStart = paginationInfo ? (paginationInfo.page - 1) * paginationInfo.pageSize + 1 : 1;
+  const currentEnd = paginationInfo ? Math.min(paginationInfo.page * paginationInfo.pageSize, paginationInfo.total) : tableData.length;
+
+  const handleEdit = (order: Order) => {
+    const editableItem: EditableItem = {
+      number: order.number,
+      title: order.title,
+      category: order.category,
+      language: order.language,
+      count: order.count,
+      categoryCount: order.categoryCount,
+      id: order.id,
+      year: order.year,
+      first: order.first,
+      last: order.last,
+      rev: order.rev,
+      editedtranslated: order.editedtranslated
+    };
+    
+    setSelectedItem(editableItem);
     setEditModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleSaveEdit = async (item: EditableItem) => {
+    setIsEditing(true);
+    try {
+      const formData = new FormData();
+      formData.append('id', item.id);
+      formData.append('title', item.title);
+      formData.append('category', item.category);
+      formData.append('language', Array.isArray(item.language) ? item.language.join(', ') : item.language);
+      formData.append('year', item.year ? item.year.toString() : '');
+      formData.append('firstname', item.first || '');
+      formData.append('lastname', item.last || '');
+      formData.append('titlecount', item.count.toString());
+      formData.append('categorycount', item.categoryCount.toString());
+      // The 'rev' form field maps to the 'editedtranslated' database column
+      formData.append('rev', Array.isArray(item.rev) ? item.rev.join(', ') : (item.rev || ''));
+      
+      const result = await updateProduct(formData);
+      
+      if (result.success) {
+        setEditModalOpen(false);
+        setSelectedItem(null);
+        // Refresh the page to show updated data
+        window.location.reload();
+      } else {
+        alert(`Failed to update item: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      alert('An error occurred while updating the item');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const handleDelete = (id: string, title: string) => {
     setSelectedOrderId(id);
+    setSelectedOrderTitle(title);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedOrderId) return;
+    
+    setIsDeleting(true);
+    try {
+      const formData = new FormData();
+      formData.append('id', selectedOrderId);
+      
+      const result = await deleteProduct(formData);
+      
+      if (result.success) {
+        // Close modal and reset state
+        setDeleteModalOpen(false);
+        setSelectedOrderId(null);
+        setSelectedOrderTitle(null);
+        // Refresh the page to show updated data
+        window.location.reload();
+      } else {
+        alert(`Failed to delete item: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('An error occurred while deleting the item');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const closeEditModal = () => {
-    setEditModalOpen(false);
-    setSelectedOrderId(null);
+    if (!isEditing) {
+      setEditModalOpen(false);
+      setSelectedItem(null);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    if (!isDeleting) {
+      setDeleteModalOpen(false);
+      setSelectedOrderId(null);
+      setSelectedOrderTitle(null);
+    }
   };
 
   return (
     <div className="overflow-hidden bg-white border-[#e5e7eb]">
+      {/* Pagination info header */}
+      {paginationInfo && (
+        <div className="px-4 py-2 border-b border-[#e5e7eb] bg-gray-50">
+          <div className="flex justify-between items-center text-sm text-gray-600">
+            <span>
+              Showing {currentStart}-{currentEnd} of {paginationInfo.total} results
+            </span>
+            <span>
+              Page {paginationInfo.page} of {paginationInfo.totalPages}
+            </span>
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-full overflow-x-auto">
         <div className="min-w-[1102px]">
           <Table>
@@ -158,7 +277,10 @@ export default function Catalog(data: any) {
                   </TableCell>
                   <TableCell className="px-3 py-1">
                   <div className="text-gray-500 flex items-center">
-                    {order.language}
+                    {Array.isArray(order.language) 
+                      ? order.language.join(', ') 
+                      : order.language
+                    }
                   </div>
                   </TableCell>
                   <TableCell className="px-3 py-1">
@@ -192,14 +314,17 @@ export default function Catalog(data: any) {
                   </div>
                   </TableCell>
                   <TableCell className="px-3 py-1">
-                  <div className="text-gray-500 flex items-center">
-                    {order.rev}
-                  </div>
+                    <div className="text-gray-500 flex items-center">
+                    {order.editedtranslated && (Array.isArray(order.editedtranslated) 
+                      ? order.editedtranslated.join(', ') 
+                      : order.editedtranslated)
+                    }
+                    </div>
                   </TableCell>
                   <TableCell className="py-1 px-1">
                   <div 
                     className="hover:bg-yellow-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300"
-                    onClick={() => handleEdit(order.id)}
+                    onClick={() => handleEdit(order)}
                   >
                     <PencilIcon height={16} color="#6b7280"></PencilIcon>
                   </div>
@@ -207,7 +332,7 @@ export default function Catalog(data: any) {
                   <TableCell className="py-1 pr-1">
                   <div 
                     className="hover:bg-red-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300"
-                    onClick={() => handleDelete(order.id)}
+                    onClick={() => handleDelete(order.id, order.title)}
                   >
                     <TrashIcon height={16} color="#6b7280"></TrashIcon>
                   </div>
@@ -218,9 +343,37 @@ export default function Catalog(data: any) {
           </Table>
         </div>
       </div>
-      <Modal isOpen={isEditModalOpen} onClose={closeEditModal}>
-        <p>asodgjo;sajgd</p>
-      </Modal>
+      
+      {/* Pagination summary at bottom */}
+      {paginationInfo && (
+        <div className="px-4 py-2 border-t border-[#e5e7eb] bg-gray-50">
+          <div className="flex justify-between items-center text-xs text-gray-500">
+            <span>
+              {tableData.length} items displayed
+            </span>
+            <span>
+              Total: {paginationInfo.total} records
+            </span>
+          </div>
+        </div>
+      )}
+      
+      <EditItemModal
+        isOpen={isEditModalOpen}
+        onClose={closeEditModal}
+        onSave={handleSaveEdit}
+        item={selectedItem}
+        isEditing={isEditing}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleConfirmDelete}
+        title="Delete Catalog Item"
+        itemName={selectedOrderTitle || undefined}
+        isDeleting={isDeleting}
+      />
     </div>
     
   );

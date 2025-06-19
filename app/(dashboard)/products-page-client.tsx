@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { File, PlusCircle } from 'lucide-react';
 
-export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
+export default function ProductsPageClient({ catalog }: { catalog: any }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -33,6 +33,21 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
   const [activeSearchQueries, setActiveSearchQueries] = useState<Array<{id: string, criteria: string, query: string}>>([]);
   const [isSearchFilterActive, setIsSearchFilterActive] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize] = useState<number>(100); // Fixed page size of 100
+
+  // Extract catalog data and pagination info
+  const catalogData = catalog?.data || [];
+  const paginationInfo = catalog?.pagination || {
+    page: 1,
+    pageSize: 100,
+    total: 0,
+    totalPages: 1,
+    hasNext: false,
+    hasPrev: false
+  };
+
   const yearFilterId = `year-${yearRange[0]}-${yearRange[1]}`;
   const searchFilterIds = activeSearchQueries.map(sq => `search-${sq.criteria}-${sq.query}`);
 
@@ -44,6 +59,17 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
     const currentTitleSearch = searchParams.get('titleSearch');
     const currentIdSearch = searchParams.get('idSearch');
     const currentAuthorSearch = searchParams.get('authorSearch');
+    const currentPage = searchParams.get('page');
+    
+    // Initialize pagination state
+    if (currentPage) {
+      const pageNum = parseInt(currentPage);
+      if (!isNaN(pageNum) && pageNum > 0) {
+        setCurrentPage(pageNum);
+      }
+    } else {
+      setCurrentPage(1);
+    }
     
     // Initialize tabs - if no tabs parameter or tabs=All, set to [""]
     if (!currentTabs || currentTabs === 'All') {
@@ -487,10 +513,18 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
       params.set('authorSearch', authorSearchQuery.trim());
     }
     
+    // Add pagination parameters
+    if (currentPage > 1) {
+      params.set('page', currentPage.toString());
+    }
+    if (pageSize !== 100) {
+      params.set('pageSize', pageSize.toString());
+    }
+    
     // Update URL without page reload
     const newURL = params.toString() ? `?${params.toString()}` : '?tabs=All';
     router.replace(newURL, { scroll: false });
-  }, [router, selectedTabs, isYearFilterActive, yearRange, isSearchFilterActive, activeSearchQueries, titleSearchQuery, idSearchQuery, authorSearchQuery]);
+  }, [router, selectedTabs, isYearFilterActive, yearRange, isSearchFilterActive, activeSearchQueries, titleSearchQuery, idSearchQuery, authorSearchQuery, currentPage, pageSize]);
 
   // Update URL when filters change
   useEffect(() => {
@@ -502,7 +536,41 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
   }, [updateURLParams]);
 
   // Remove client-side filtering since data is now pre-filtered on server
-  const filteredCatalog = catalog;
+  const filteredCatalog = catalogData;
+
+  // Pagination handlers
+  const goToPage = useCallback((page: number) => {
+    if (page >= 1 && page <= paginationInfo.totalPages && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  }, [currentPage, paginationInfo.totalPages]);
+
+  const goToNextPage = useCallback(() => {
+    if (paginationInfo.hasNext) {
+      setCurrentPage(prev => prev + 1);
+    }
+  }, [paginationInfo.hasNext]);
+
+  const goToPreviousPage = useCallback(() => {
+    if (paginationInfo.hasPrev) {
+      setCurrentPage(prev => prev - 1);
+    }
+  }, [paginationInfo.hasPrev]);
+
+  const goToFirstPage = useCallback(() => {
+    setCurrentPage(1);
+  }, []);
+
+  const goToLastPage = useCallback(() => {
+    setCurrentPage(paginationInfo.totalPages);
+  }, [paginationInfo.totalPages]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    if (currentPage > 1) {
+      setCurrentPage(1);
+    }
+  }, [selectedTabs, isYearFilterActive, yearRange, isSearchFilterActive, activeSearchQueries, titleSearchQuery, idSearchQuery, authorSearchQuery]);
 
   return (
       <Tabs value={selectedTabs} onValueChange={handleTabChange}>
@@ -766,8 +834,108 @@ export default function ProductsPageClient({ catalog }: { catalog: any[] }) {
               </TabsList>
           </div>
 
-          <Catalog data={filteredCatalog}></Catalog>
+          {/* Pagination controls */}
+          <div className="mb-4 flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                  Showing {((paginationInfo.page - 1) * paginationInfo.pageSize) + 1}-{Math.min(paginationInfo.page * paginationInfo.pageSize, paginationInfo.total)} of {paginationInfo.total} results
+              </div>
+              <div className="flex items-center gap-2">
+                  <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={goToFirstPage}
+                      disabled={currentPage === 1}
+                  >
+                      First
+                  </Button>
+                  <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={goToPreviousPage}
+                      disabled={!paginationInfo.hasPrev}
+                  >
+                      Previous
+                  </Button>
+                  
+                  {/* Page numbers */}
+                  <div className="flex items-center gap-1">
+                      {(() => {
+                          const pages = [];
+                          const totalPages = paginationInfo.totalPages;
+                          const current = currentPage;
+                          
+                          // Always show first page
+                          if (current > 3) {
+                              pages.push(
+                                  <Button 
+                                      key={1}
+                                      size="sm" 
+                                      variant={1 === current ? "default" : "outline"}
+                                      onClick={() => goToPage(1)}
+                                  >
+                                      1
+                                  </Button>
+                              );
+                              if (current > 4) {
+                                  pages.push(<span key="ellipsis1" className="px-2">...</span>);
+                              }
+                          }
+                          
+                          // Show pages around current page
+                          for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) {
+                              pages.push(
+                                  <Button 
+                                      key={i}
+                                      size="sm" 
+                                      variant={i === current ? "default" : "outline"}
+                                      onClick={() => goToPage(i)}
+                                  >
+                                      {i}
+                                  </Button>
+                              );
+                          }
+                          
+                          // Always show last page
+                          if (current < totalPages - 2) {
+                              if (current < totalPages - 3) {
+                                  pages.push(<span key="ellipsis2" className="px-2">...</span>);
+                              }
+                              pages.push(
+                                  <Button 
+                                      key={totalPages}
+                                      size="sm" 
+                                      variant={totalPages === current ? "default" : "outline"}
+                                      onClick={() => goToPage(totalPages)}
+                                  >
+                                      {totalPages}
+                                  </Button>
+                              );
+                          }
+                          
+                          return pages;
+                      })()}
+                  </div>
+                  
+                  <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={goToNextPage}
+                      disabled={!paginationInfo.hasNext}
+                  >
+                      Next
+                  </Button>
+                  <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={goToLastPage}
+                      disabled={currentPage === paginationInfo.totalPages}
+                  >
+                      Last
+                  </Button>
+              </div>
+          </div>
 
+          <Catalog data={filteredCatalog}></Catalog>
       </Tabs>
   );
 }
