@@ -39,9 +39,25 @@ export async function middleware(request: NextRequest) {
       console.error('Middleware auth error:', error)
     }
 
-    // TEMPORARILY ALLOW ALL ACCESS FOR DEBUGGING
-    // If user is signed in and the current path is /login, redirect to /
-    if (user && request.nextUrl.pathname === '/login') {
+    // Allow access to auth pages without authentication
+    const authPages = ['/login', '/signup', '/verify-email']
+    const isAuthPage = authPages.includes(request.nextUrl.pathname)
+
+    // If user is not authenticated and trying to access protected routes
+    if (!user && !isAuthPage) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    // If user is authenticated but email not verified, redirect to verify-email page
+    if (user && !user.email_confirmed_at && request.nextUrl.pathname !== '/verify-email') {
+      return NextResponse.redirect(new URL('/verify-email', request.url))
+    }
+
+    // If user is signed in and verified, and trying to access auth pages, redirect to dashboard
+    if (user && user.email_confirmed_at && (
+        request.nextUrl.pathname === '/login' || 
+        request.nextUrl.pathname === '/signup'
+    )) {
       return NextResponse.redirect(new URL('/', request.url))
     }
 

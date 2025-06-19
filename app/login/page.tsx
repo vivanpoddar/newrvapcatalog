@@ -11,9 +11,9 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/utils/supabase/client';
-import DashboardLayout from 'app/(dashboard)/layout';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -44,11 +44,22 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setError(error.message);
+        // Check if it's an email not confirmed error
+        if (error.message.includes('Email not confirmed')) {
+          setError('Please check your email and click the verification link before signing in.');
+        } else {
+          setError(error.message);
+        }
       } else if (data.user) {
-        // Successful login
-        router.push('/');
-        router.refresh();
+        // Check if email is verified
+        if (!data.user.email_confirmed_at) {
+          // User exists but email not verified - redirect to verify-email page
+          router.push('/verify-email');
+        } else {
+          // Successful login with verified email
+          router.push('/');
+          router.refresh();
+        }
       } else {
         setError('Login failed - no user data returned');
       }
@@ -62,13 +73,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div>
-      <DashboardLayout>
-        <Card className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">RVAP Catalog</h1>
+          <p className="text-gray-600">Access the digital catalog management system</p>
+        </div>
+        
+        <Card className="w-full">
           <CardHeader>
-            <CardTitle className="text-2xl">Login</CardTitle>
-            <CardDescription>
-              Login to access catalog editing features, including additions, updates, and deletions.
+            <CardTitle className="text-2xl text-center">Sign In</CardTitle>
+            <CardDescription className="text-center">
+              Enter your credentials to access the catalog management system
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -96,7 +112,9 @@ export default function LoginPage() {
                 />
               </div>
               {error && (
-                <div className="text-sm text-red-600">{error}</div>
+                <div className="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200">
+                  {error}
+                </div>
               )}
             </CardContent>
             <CardFooter>
@@ -105,8 +123,18 @@ export default function LoginPage() {
               </Button>
             </CardFooter>
           </form>
+          
+          <div className="px-6 pb-6">
+            <div className="text-center text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link href="/signup" className="text-primary hover:underline font-medium">
+                Sign up here
+              </Link>
+            </div>
+          </div>
         </Card>
-      </DashboardLayout>
+        
+      </div>
     </div>
   );
 }
