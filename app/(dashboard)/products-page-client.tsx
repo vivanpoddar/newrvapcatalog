@@ -605,6 +605,55 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
     }
   }, []);
 
+  const handleExportCatalog = useCallback(() => {
+    try {
+      // Define genre and language codes for filter details
+      const genreCodes = ["CLB", "DDL", "DMW", "GIT", "HIS", "HMS", "KID", "MNP", "ODL", "OPH", "PIL", "SCI", "SER", "SHR", "SMH", "SNK", "SPD", "SRK", "VED", "VIV", "UVO"];
+      const languageCodes = ["E", "S", "H", "B", "T"];
+      
+      // Prepare the catalog data for export
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        exportedBy: 'RVAP Catalog System',
+        version: '1.0',
+        appliedFilters: {
+          genres: selectedTabs.filter(tab => genreCodes.includes(tab)),
+          languages: selectedTabs.filter(tab => languageCodes.includes(tab)),
+          yearRange: isYearFilterActive ? { min: yearRange[0], max: yearRange[1] } : null,
+          searchQueries: isSearchFilterActive ? activeSearchQueries : [],
+          titleSearch: titleSearchQuery || null,
+          idSearch: idSearchQuery || null,
+          authorSearch: authorSearchQuery || null
+        },
+        pagination: paginationInfo,
+        totalRecords: paginationInfo?.total || catalogData?.length || 0,
+        recordsInExport: catalogData?.length || 0,
+        data: catalogData || []
+      };
+
+      // Create and download the JSON file
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rvap-catalog-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('Catalog exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('An error occurred while exporting the catalog');
+    }
+  }, [catalogData, paginationInfo, selectedTabs, yearRange, isYearFilterActive, activeSearchQueries, isSearchFilterActive, titleSearchQuery, idSearchQuery, authorSearchQuery]);
+
   return (
       <Tabs value={selectedTabs} onValueChange={handleTabChange}>
           <div className="mb-2 flex items-center">
@@ -815,7 +864,7 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
               </div>
 
               <div className="ml-auto flex items-center gap-2">
-                  <Button size="sm" variant="outline" className="h-8 gap-1">
+                  <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportCatalog}>
                       <File className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                           Export Catalog
@@ -869,31 +918,31 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
               </TabsList>
           </div>
 
-          {/* Pagination controls */}
+          {/* Tabs-based pagination controls */}
           <div className="mb-4 flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                   Showing {((paginationInfo.page - 1) * paginationInfo.pageSize) + 1}-{Math.min(paginationInfo.page * paginationInfo.pageSize, paginationInfo.total)} of {paginationInfo.total} results
               </div>
               <div className="flex items-center gap-2">
-                  <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={goToFirstPage}
-                      disabled={currentPage === 1}
-                  >
-                      First
-                  </Button>
-                  <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={goToPreviousPage}
-                      disabled={!paginationInfo.hasPrev}
-                  >
-                      Previous
-                  </Button>
-                  
-                  {/* Page numbers */}
-                  <div className="flex items-center gap-1">
+                  <TabsList>
+                      <TabsTrigger 
+                          value={`page-first`}
+                          onClick={goToFirstPage}
+                          disabled={currentPage === 1}
+                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200"
+                      >
+                          First
+                      </TabsTrigger>
+                      <TabsTrigger 
+                          value={`page-prev`}
+                          onClick={goToPreviousPage}
+                          disabled={!paginationInfo.hasPrev}
+                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200"
+                      >
+                          Previous
+                      </TabsTrigger>
+                      
+                      {/* Page number tabs */}
                       {(() => {
                           const pages = [];
                           const totalPages = paginationInfo.totalPages;
@@ -902,71 +951,71 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
                           // Always show first page
                           if (current > 3) {
                               pages.push(
-                                  <Button 
+                                  <TabsTrigger 
                                       key={1}
-                                      size="sm" 
-                                      variant={1 === current ? "default" : "outline"}
+                                      value={`page-${1}`}
                                       onClick={() => goToPage(1)}
+                                      className={`transition-colors duration-200 hover:bg-black hover:text-white ${current === 1 ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
                                   >
                                       1
-                                  </Button>
+                                  </TabsTrigger>
                               );
                               if (current > 4) {
-                                  pages.push(<span key="ellipsis1" className="px-2">...</span>);
+                                  pages.push(<span key="ellipsis1" className="px-2 text-muted-foreground">...</span>);
                               }
                           }
                           
                           // Show pages around current page
                           for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) {
                               pages.push(
-                                  <Button 
+                                  <TabsTrigger 
                                       key={i}
-                                      size="sm" 
-                                      variant={i === current ? "default" : "outline"}
+                                      value={`page-${i}`}
                                       onClick={() => goToPage(i)}
+                                      className={`transition-colors duration-200 hover:bg-black hover:text-white ${current === i ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
                                   >
                                       {i}
-                                  </Button>
+                                  </TabsTrigger>
                               );
                           }
                           
                           // Always show last page
                           if (current < totalPages - 2) {
                               if (current < totalPages - 3) {
-                                  pages.push(<span key="ellipsis2" className="px-2">...</span>);
+                                  pages.push(<span key="ellipsis2" className="px-2 text-muted-foreground">...</span>);
                               }
                               pages.push(
-                                  <Button 
+                                  <TabsTrigger 
                                       key={totalPages}
-                                      size="sm" 
-                                      variant={totalPages === current ? "default" : "outline"}
+                                      value={`page-${totalPages}`}
                                       onClick={() => goToPage(totalPages)}
+                                      className={`transition-colors duration-200 hover:bg-black hover:text-white ${current === totalPages ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
                                   >
                                       {totalPages}
-                                  </Button>
+                                  </TabsTrigger>
                               );
                           }
                           
                           return pages;
                       })()}
-                  </div>
-                  
-                  <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={goToNextPage}
-                      disabled={!paginationInfo.hasNext}
-                  >
-                      Next
-                  </Button>
-                  <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={goToLastPage}
-                      disabled={currentPage === paginationInfo.totalPages}
-                  >
-                      Last
-                  </Button>
+                      
+                      <TabsTrigger 
+                          value={`page-next`}
+                          onClick={goToNextPage}
+                          disabled={!paginationInfo.hasNext}
+                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200"
+                      >
+                          Next
+                      </TabsTrigger>
+                      <TabsTrigger 
+                          value={`page-last`}
+                          onClick={goToLastPage}
+                          disabled={currentPage === paginationInfo.totalPages}
+                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200"
+                      >
+                          Last
+                      </TabsTrigger>
+                  </TabsList>
               </div>
           </div>
 

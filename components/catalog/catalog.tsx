@@ -228,19 +228,6 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
   return (
     <TooltipProvider>
       <div className="overflow-hidden bg-white border-[#e5e7eb]">
-        {/* Pagination info header */}
-        {paginationInfo && (
-        <div className="px-4 py-2 border-b border-[#e5e7eb] bg-gray-50">
-          <div className="flex justify-between items-center text-sm text-gray-600">
-            <span>
-              Showing {currentStart}-{currentEnd} of {paginationInfo.total} results
-            </span>
-            <span>
-              Page {paginationInfo.page} of {paginationInfo.totalPages}
-            </span>
-          </div>
-        </div>
-      )}
       
       <div className="max-w-full overflow-x-auto">
         <div className="min-w-[1102px]">
@@ -402,7 +389,7 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                           }`}
                           onClick={() => !checkoutStates[order.number.toString()] && handleReturn(order.number.toString())}
                         >
-                          <ReturnIcon height={8} color="#6b7280"></ReturnIcon>
+                          <ReturnIcon height={16} color="#6b7280"></ReturnIcon>
                         </div>
                         <div className="text-xs text-blue-600 text-center">
                           Your checkout
@@ -412,7 +399,7 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                       <div className="space-y-1">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="bg-yellow-300 hover:bg-white py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
+                              <div className="hover:bg-white py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
                                 <InfoIcon height={16} color="#6b7280" />
                               </div>                          
                             </TooltipTrigger>
@@ -472,16 +459,13 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
         </div>
       </div>
       
-      {/* Pagination summary at bottom */}
+      {/* Filter-style pagination menu */}
       {paginationInfo && (
-        <div className="px-4 py-2 border-t border-[#e5e7eb] bg-gray-50">
-          <div className="flex justify-between items-center text-xs text-gray-500">
-            <span>
-              {tableData.length} items displayed
-            </span>
-            <span>
-              Total: {paginationInfo.total} records
-            </span>
+        <div className="px-3 py-2 border-t border-gray-200 bg-gray-50/50">
+          <div className="flex justify-center">
+            <div className="inline-flex items-center justify-center whitespace-nowrap rounded-sm m-0.5 px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-background text-foreground shadow-sm border">
+              {currentStart}-{currentEnd} of {paginationInfo.total} • Page {paginationInfo.page}/{paginationInfo.totalPages}
+            </div>
           </div>
         </div>
       )}
