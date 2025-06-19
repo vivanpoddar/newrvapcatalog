@@ -864,14 +864,14 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
               </div>
 
               <div className="ml-auto flex items-center gap-2">
-                  <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportCatalog}>
+          <Button size="sm" variant="outline" className="hover:bg-black hover:text-white h-8 gap-1" onClick={handleExportCatalog}>
                       <File className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                           Export Catalog
                       </span>
                   </Button>
                   {isAdmin && (
-                    <Button size="sm" className="h-8 gap-1" onClick={() => setCreateModalOpen(true)}>
+                    <Button size="sm" className="hover:bg-white hover:text-black h-8 gap-1 border" onClick={() => setCreateModalOpen(true)}>
                         <PlusCircle className="h-3.5 w-3.5" />
                         <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                             Add Book

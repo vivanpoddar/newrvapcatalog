@@ -226,7 +226,7 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
   };
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={0}>
       <div className="overflow-hidden bg-white border-[#e5e7eb]">
       
       <div className="max-w-full overflow-x-auto">
