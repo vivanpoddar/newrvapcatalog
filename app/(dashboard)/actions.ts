@@ -1,6 +1,6 @@
 'use server';
 
-import { deleteProductById, updateProductById } from '@/lib/db';
+import { deleteProductById, updateProductById, createProduct as createProductDB } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 
 export async function deleteProduct(formData: FormData) {
@@ -59,21 +59,15 @@ export async function updateProduct(formData: FormData) {
     const firstname = formData.get('firstname') as string;
     updateData.firstname = firstname && firstname.trim() ? firstname.trim() : '';
     
-    const lastname = formData.get('lastname') as string;
+        const lastname = formData.get('lastname') as string;
     updateData.lastname = lastname && lastname.trim() ? lastname.trim() : '';
     
-    const titlecount = formData.get('titlecount') as string;
-    if (titlecount) updateData.titlecount = parseInt(titlecount);
-    
-    const categorycount = formData.get('categorycount') as string;
-    if (categorycount) updateData.categorycount = parseInt(categorycount);
-    
-    // Note: The 'rev' form field maps to the 'editedtranslated' database column
-    const rev = formData.get('rev') as string;
-    if (rev && rev.trim()) {
-      // Handle comma-separated rev values - store in editedtranslated column
-      const revs = rev.split(',').map(r => r.trim()).filter(r => r);
-      updateData.editedtranslated = revs.length > 0 ? revs : null;
+    // The 'editedtranslated' form field maps to the 'editedtranslated' database column
+    const editedtranslated = formData.get('editedtranslated') as string;
+    if (editedtranslated && editedtranslated.trim()) {
+      // Handle comma-separated editedtranslated values
+      const translations = editedtranslated.split(',').map(t => t.trim()).filter(t => t);
+      updateData.editedtranslated = translations.length > 0 ? translations : null;
     } else {
       updateData.editedtranslated = null;
     }
@@ -87,6 +81,70 @@ export async function updateProduct(formData: FormData) {
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to update product' 
+    };
+  }
+}
+
+export async function createProduct(formData: FormData) {
+  try {
+    // Get all form data and build create object
+    const title = formData.get('title') as string;
+    if (!title || !title.trim()) {
+      throw new Error('Title is required');
+    }
+    
+    const category = formData.get('category') as string;
+    if (!category || !category.trim()) {
+      throw new Error('Category is required');
+    }
+    
+    const createData: any = {
+      title: title.trim(),
+      category: category.trim()
+    };
+    
+    const language = formData.get('language') as string;
+    if (language && language.trim()) {
+      // Handle comma-separated languages - always send as array for PostgreSQL
+      const languages = language.split(',').map(lang => lang.trim()).filter(lang => lang);
+      createData.language = languages.length > 0 ? languages : [];
+    } else {
+      throw new Error('Language is required');
+    }
+    
+    const year = formData.get('year') as string;
+    if (year && year.trim()) {
+      const yearValue = parseInt(year);
+      createData.pubyear = yearValue > 0 ? yearValue : null;
+    } else {
+      createData.pubyear = null;
+    }
+    
+    const firstname = formData.get('firstname') as string;
+    createData.firstname = firstname && firstname.trim() ? firstname.trim() : '';
+    
+    const lastname = formData.get('lastname') as string;
+    createData.lastname = lastname && lastname.trim() ? lastname.trim() : '';
+    
+    // Handle editedtranslated field
+    const editedtranslated = formData.get('editedtranslated') as string;
+    if (editedtranslated && editedtranslated.trim()) {
+      // Handle comma-separated editedtranslated values
+      const items = editedtranslated.split(',').map(item => item.trim()).filter(item => item);
+      createData.editedtranslated = items.length > 0 ? items : null;
+    } else {
+      createData.editedtranslated = null;
+    }
+    
+    await createProductDB(createData);
+    revalidatePath('/');
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Create error:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to create product' 
     };
   }
 }

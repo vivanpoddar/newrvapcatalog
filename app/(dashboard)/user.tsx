@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { auth, signOut } from '@/lib/auth';
+import { createClient } from '@/utils/supabase/server';
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -10,10 +10,16 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import SignOutButton from '@/components/sign-out-button';
 
 export async function User() {
-  let session = await auth();
-  let user = session?.user;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login');
+  }
 
   return (
     <DropdownMenu>
@@ -24,7 +30,7 @@ export async function User() {
           className="overflow-hidden rounded-full"
         >
           <Image
-            src={user?.image ?? '/placeholder-user.jpg'}
+            src={user?.user_metadata?.avatar_url ?? '/placeholder-user.jpg'}
             width={36}
             height={36}
             alt="Avatar"
@@ -39,15 +45,8 @@ export async function User() {
         <DropdownMenuItem>Support</DropdownMenuItem>
         <DropdownMenuSeparator />
         {user ? (
-          <DropdownMenuItem>
-            <form
-              action={async () => {
-                'use server';
-                await signOut();
-              }}
-            >
-              <button type="submit">Sign Out</button>
-            </form>
+          <DropdownMenuItem asChild>
+            <SignOutButton />
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem>

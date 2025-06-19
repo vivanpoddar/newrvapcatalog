@@ -19,34 +19,46 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // Handle escape key to close modal
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleEscape);
     } else {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only close if the click is exactly on the backdrop (not on any child elements)
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center ${isFullscreen ? "w-full h-full" : "h-[calc(100%-1rem)] max-h-full"} ${className}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 ${isFullscreen ? "w-full h-full" : "h-[calc(100%-1rem)] max-h-full"} ${className}`}
       role="dialog"
       aria-modal="true"
+      onClick={handleBackdropClick}
     >
-      <div className="fixed inset-0 bg-black opacity-50" onClick={onClose}></div>
-      <div ref={modalRef} className="relative bg-white rounded-lg shadow p-4 w-full max-w-2xl">
+      <div 
+        ref={modalRef} 
+        className="relative bg-white rounded-lg shadow p-4 w-full max-w-2xl"
+        onClick={(e) => e.stopPropagation()} // Prevent backdrop click when clicking on modal content
+      >
         {showCloseButton && (
           <button
             type="button"

@@ -8,12 +8,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { File, PlusCircle } from 'lucide-react';
+import { CreateItemModal } from "@/components/ui/create-item-modal";
 
 export default function ProductsPageClient({ catalog }: { catalog: any }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
   const [selectedTabs, setSelectedTabs] = useState<string[]>([""]);
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   
   // Separate state for categories (genres) and languages
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -572,6 +574,37 @@ export default function ProductsPageClient({ catalog }: { catalog: any }) {
     }
   }, [selectedTabs, isYearFilterActive, yearRange, isSearchFilterActive, activeSearchQueries, titleSearchQuery, idSearchQuery, authorSearchQuery]);
 
+  const handleCreateItem = useCallback(async (newItem: any) => {
+    try {
+      // Create FormData for the API call
+      const formData = new FormData();
+      formData.append('title', newItem.title);
+      formData.append('category', newItem.category);
+      formData.append('language', Array.isArray(newItem.language) ? newItem.language.join(', ') : newItem.language);
+      formData.append('year', newItem.year ? newItem.year.toString() : '');
+      formData.append('firstname', newItem.first || '');
+      formData.append('lastname', newItem.last || '');
+      formData.append('editedtranslated', Array.isArray(newItem.editedtranslated) ? newItem.editedtranslated.join(', ') : (newItem.editedtranslated || ''));
+      
+      // Import the createProduct action
+      const { createProduct } = await import('./actions');
+      const result = await createProduct(formData);
+      
+      if (result.success) {
+        // Close the modal after successful creation
+        setCreateModalOpen(false);
+        
+        // Refresh the page to show updated data
+        window.location.reload();
+      } else {
+        alert(`Failed to create item: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Create error:', error);
+      alert('An error occurred while creating the item');
+    }
+  }, []);
+
   return (
       <Tabs value={selectedTabs} onValueChange={handleTabChange}>
           <div className="mb-2 flex items-center">
@@ -788,7 +821,7 @@ export default function ProductsPageClient({ catalog }: { catalog: any }) {
                           Export Catalog
                       </span>
                   </Button>
-                  <Button size="sm" className="h-8 gap-1">
+                  <Button size="sm" className="h-8 gap-1" onClick={() => setCreateModalOpen(true)}>
                       <PlusCircle className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                           Add Book
@@ -936,6 +969,12 @@ export default function ProductsPageClient({ catalog }: { catalog: any }) {
           </div>
 
           <Catalog data={filteredCatalog}></Catalog>
+
+          <CreateItemModal
+            isOpen={isCreateModalOpen}
+            onClose={() => setCreateModalOpen(false)}
+            onSave={handleCreateItem}
+          />
       </Tabs>
   );
 }

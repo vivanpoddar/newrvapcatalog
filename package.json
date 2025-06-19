@@ -30,7 +30,6 @@
     "drizzle-zod": "^0.8.2",
     "lucide-react": "^0.511.0",
     "next": "15.3.3",
-    "next-auth": "5.0.0-beta.25",
     "postcss": "^8.5.4",
     "prettier": "^3.5.3",
     "prop-types": "^15.8.1",

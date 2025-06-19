@@ -7,50 +7,59 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 
-interface EditItemModalProps {
+interface CreateItemModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (item: EditableItem) => void;
-  item: EditableItem | null;
-  isEditing?: boolean;
+  onSave: (item: CreateableItem) => void;
 }
 
-export interface EditableItem {
-  title: string;
-  category: string;
-  language: string | string[];
-  year: number;
-  first: string;
-  last: string;
-  editedtranslated: string | string[] | null;
+export interface CreateableItem {
+    title: string;
+    category: string;
+    language: string | string[];
+    year: number;
+    first: string;
+    last: string;
+    editedtranslated: string | string[] | null;
 }
 
-export function EditItemModal({
+export function CreateItemModal({
   isOpen,
   onClose,
-  onSave,
-  item,
-  isEditing = false
-}: EditItemModalProps) {
-  const [formData, setFormData] = useState<EditableItem | null>(null);
+  onSave
+}: CreateItemModalProps) {
+  const [formData, setFormData] = useState<CreateableItem>({
+    title: '',
+    category: '',
+    language: [],
+    year: 0,
+    first: '',
+    last: '',
+    editedtranslated: null
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (item) {
-      setFormData({ ...item });
+    if (isOpen) {
+      // Reset form when modal opens
+      setFormData({
+        title: '',
+        category: '',
+        language: [],
+        year: 0,
+        first: '',
+        last: '',
+        editedtranslated: null
+      });
       setErrors({});
     }
-  }, [item]);
+  }, [isOpen]);
 
   const handleClose = () => {
-    if (!isEditing) {
-      onClose();
-    }
+    onClose();
   };
 
-  const handleInputChange = (field: keyof EditableItem, value: string | number) => {
-    if (!formData) return;
-    
+  const handleInputChange = (field: keyof CreateableItem, value: string | number) => {
     setFormData({
       ...formData,
       [field]: value
@@ -63,8 +72,6 @@ export function EditItemModal({
   };
 
   const handleCategorySelect = (category: string) => {
-    if (!formData) return;
-    
     setFormData({
       ...formData,
       category: category
@@ -76,8 +83,6 @@ export function EditItemModal({
   };
 
   const handleLanguageSelect = (languageCode: string) => {
-    if (!formData) return;
-    
     const currentLanguages = Array.isArray(formData.language) ? formData.language : (formData.language ? [formData.language] : []);
     
     if (currentLanguages.includes(languageCode)) {
@@ -102,8 +107,6 @@ export function EditItemModal({
   };
 
   const handleEditedTranslatedSelect = (editedCode: string) => {
-    if (!formData) return;
-    
     const currentItems = Array.isArray(formData.editedtranslated) ? formData.editedtranslated : (formData.editedtranslated ? [formData.editedtranslated] : []);
     
     if (currentItems.includes(editedCode)) {
@@ -128,9 +131,11 @@ export function EditItemModal({
   };
 
   const validateForm = (): boolean => {
-    if (!formData) return false;
-    
     const newErrors: Record<string, string> = {};
+    
+    // Valid categories and languages from the products-page-client.tsx
+    const validCategories = ["CLB", "DDL", "DMW", "GIT", "HIS", "HMS", "KID", "MNP", "ODL", "OPH", "PIL", "SCI", "SER", "SHR", "SMH", "SNK", "SPD", "SRK", "VED", "VIV", "UVO"];
+    const validLanguages = ["E", "S", "H", "B", "T"];
     
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
@@ -138,6 +143,18 @@ export function EditItemModal({
     
     if (!formData.category.trim()) {
       newErrors.category = 'Category is required';
+    } else if (!validCategories.includes(formData.category.trim().toUpperCase())) {
+      newErrors.category = `Invalid category. Valid categories: ${validCategories.join(', ')}`;
+    }
+    
+    if (!formData.language) {
+      newErrors.language = 'Language is required';
+    } else {
+      const languages = Array.isArray(formData.language) ? formData.language : [formData.language];
+      const invalidLanguages = languages.filter(lang => !validLanguages.includes(lang.trim().toUpperCase()));
+      if (invalidLanguages.length > 0) {
+        newErrors.language = `Invalid language(s): ${invalidLanguages.join(', ')}. Valid languages: ${validLanguages.join(', ')}`;
+      }
     }
     
     // Only validate year format if a year is provided
@@ -150,23 +167,24 @@ export function EditItemModal({
   };
 
   const handleSave = () => {
-    if (!formData || !validateForm()) return;
+    if (!validateForm()) return;
     
     onSave(formData);
   };
-
-  if (!formData) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
       <div className="p-6 bg-white">
         <div className="mb-4">
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Edit Catalog Item
+            Add New Catalog Item
           </h3>
-          <p className="text-sm text-gray-500">
-            Update the catalog item information below.
+          <p className="text-sm text-gray-500 mb-2">
+            Enter the catalog item information below.
           </p>
+          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+            <strong>Note:</strong> The Number, ID, Count, and Category Count will be automatically generated based on existing data in the catalog.
+          </div>
         </div>
 
         <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -178,7 +196,6 @@ export function EditItemModal({
               type="text"
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              disabled={isEditing}
               className={errors.title ? 'border-red-500' : ''}
             />
             {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
@@ -194,7 +211,6 @@ export function EditItemModal({
                   <Button 
                     variant="outline" 
                     className={`w-full justify-between ${errors.category ? 'border-red-500' : ''}`}
-                    disabled={isEditing}
                   >
                     {(() => {
                       if (!formData.category) return "Select category";
@@ -249,9 +265,8 @@ export function EditItemModal({
                 type="number"
                 value={formData.year || ''}
                 onChange={(e) => handleInputChange('year', parseInt(e.target.value) || 0)}
-                disabled={isEditing}
                 className={errors.year ? 'border-red-500' : ''}
-                placeholder="Optional"
+                placeholder="2024"
               />
               {errors.year && <p className="text-red-500 text-xs mt-1">{errors.year}</p>}
             </div>
@@ -266,7 +281,6 @@ export function EditItemModal({
                 <Button 
                   variant="outline" 
                   className={`w-full justify-between ${errors.language ? 'border-red-500' : ''}`}
-                  disabled={isEditing}
                 >
                   {(() => {
                     const selectedLanguages = Array.isArray(formData.language) 
@@ -331,7 +345,6 @@ export function EditItemModal({
                 type="text"
                 value={formData.first}
                 onChange={(e) => handleInputChange('first', e.target.value)}
-                disabled={isEditing}
                 placeholder="Optional"
                 className={errors.first ? 'border-red-500' : ''}
               />
@@ -346,7 +359,6 @@ export function EditItemModal({
                 type="text"
                 value={formData.last}
                 onChange={(e) => handleInputChange('last', e.target.value)}
-                disabled={isEditing}
                 placeholder="Optional"
                 className={errors.last ? 'border-red-500' : ''}
               />
@@ -363,7 +375,6 @@ export function EditItemModal({
                 <Button 
                   variant="outline" 
                   className="w-full justify-between"
-                  disabled={isEditing}
                 >
                   {(() => {
                     const selectedItems = Array.isArray(formData.editedtranslated) 
@@ -391,7 +402,7 @@ export function EditItemModal({
                 {[
                   { code: "T", name: "Translated" },
                   { code: "E", name: "Edited" },
-                  { code: "A", name: "Adapted" },
+                  { code: "A", name: "Analysis" },
                   { code: "C", name: "Compiled" }
                 ].map((item) => {
                   const selectedItems = Array.isArray(formData.editedtranslated) 
@@ -422,7 +433,6 @@ export function EditItemModal({
             type="button"
             variant="outline"
             onClick={handleClose}
-            disabled={isEditing}
             className="px-4 py-2"
           >
             Cancel
@@ -430,10 +440,9 @@ export function EditItemModal({
           <Button
             type="button"
             onClick={handleSave}
-            disabled={isEditing}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
           >
-            {isEditing ? "Saving..." : "Save Changes"}
+            Add Item
           </Button>
         </div>
       </div>

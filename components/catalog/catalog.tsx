@@ -22,6 +22,7 @@ interface Order {
   language: string | string[]; // Updated to handle both string and array types
   count: number;
   categoryCount: number;
+  categoryIndex: number;
   id: string;
   year: number;
   first: string;
@@ -30,7 +31,7 @@ interface Order {
   editedtranslated: string | string[] | null; // Add missing field
 }
 
-export default function Catalog(data: any) {
+export default function Catalog({ data }: { data: any }) {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -39,7 +40,10 @@ export default function Catalog(data: any) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  const actualData = data?.data?.data || data?.data || [];
+  // Since data is already a flat array when passed from products-page-client,
+  // we don't need to navigate nested properties
+  const actualData = Array.isArray(data) ? data : [];
+  
   const tableData: Order[] = Array.isArray(actualData)
     ? actualData.map((item: any) => ({
         number: item.number ?? "",
@@ -48,6 +52,7 @@ export default function Catalog(data: any) {
         language: item.language ?? "",
         count: item.titlecount ?? "",
         categoryCount: item.categorycount ?? "",
+        categoryIndex: item.categoryindex ?? "",
         id: item.id ?? "",
         year: item.pubyear ?? "",
         first: item.firstname ?? "",
@@ -64,21 +69,17 @@ export default function Catalog(data: any) {
 
   const handleEdit = (order: Order) => {
     const editableItem: EditableItem = {
-      number: order.number,
       title: order.title,
       category: order.category,
       language: order.language,
-      count: order.count,
-      categoryCount: order.categoryCount,
-      id: order.id,
       year: order.year,
       first: order.first,
       last: order.last,
-      rev: order.rev,
       editedtranslated: order.editedtranslated
     };
     
     setSelectedItem(editableItem);
+    setSelectedOrderId(order.id); // Store the ID separately
     setEditModalOpen(true);
   };
 
@@ -86,23 +87,22 @@ export default function Catalog(data: any) {
     setIsEditing(true);
     try {
       const formData = new FormData();
-      formData.append('id', item.id);
+      formData.append('id', selectedOrderId || ''); // Use the stored ID
       formData.append('title', item.title);
       formData.append('category', item.category);
       formData.append('language', Array.isArray(item.language) ? item.language.join(', ') : item.language);
       formData.append('year', item.year ? item.year.toString() : '');
       formData.append('firstname', item.first || '');
       formData.append('lastname', item.last || '');
-      formData.append('titlecount', item.count.toString());
-      formData.append('categorycount', item.categoryCount.toString());
-      // The 'rev' form field maps to the 'editedtranslated' database column
-      formData.append('rev', Array.isArray(item.rev) ? item.rev.join(', ') : (item.rev || ''));
+      // The editedtranslated form field maps to the 'editedtranslated' database column
+      formData.append('editedtranslated', Array.isArray(item.editedtranslated) ? item.editedtranslated.join(', ') : (item.editedtranslated || ''));
       
       const result = await updateProduct(formData);
       
       if (result.success) {
         setEditModalOpen(false);
         setSelectedItem(null);
+        setSelectedOrderId(null); // Clear the stored ID
         // Refresh the page to show updated data
         window.location.reload();
       } else {
@@ -154,6 +154,7 @@ export default function Catalog(data: any) {
     if (!isEditing) {
       setEditModalOpen(false);
       setSelectedItem(null);
+      setSelectedOrderId(null); // Clear the stored order ID
     }
   };
 
@@ -221,7 +222,13 @@ export default function Catalog(data: any) {
                   isHeader
                   className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Category Count
+                  Cat. Count
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
+                  Cat. Index
                 </TableCell>
                 <TableCell
                   isHeader
@@ -292,6 +299,11 @@ export default function Catalog(data: any) {
                   <div className="text-gray-500 flex items-center">
                     {order.categoryCount}
                   </div>
+                  </TableCell>
+                  <TableCell className="px-3 py-1">
+                    <div className="text-gray-500 flex items-center">
+                      {order.categoryIndex}
+                    </div>
                   </TableCell>
                   <TableCell className="px-3 py-1">
                   <div className="text-gray-500 flex items-center">
