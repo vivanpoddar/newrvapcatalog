@@ -39,6 +39,22 @@ export async function GET() {
       }, { status: 500 });
     }
 
+    // Create a test checkout if there are no checkouts and we have catalog items
+    let testCheckoutCreated = false;
+    if (checkouts.length === 0 && catalog.length > 0) {
+      const { error: insertError } = await supabase
+        .from('checkouts')
+        .insert({
+          book_id: catalog[0].number,
+          user_id: user.id,
+          checked_out_at: new Date().toISOString()
+        });
+      
+      if (!insertError) {
+        testCheckoutCreated = true;
+      }
+    }
+
     return Response.json({
       user: {
         id: user.id,
@@ -46,7 +62,8 @@ export async function GET() {
       },
       checkouts: checkouts || [],
       catalog: catalog || [],
-      message: 'Checkout system test successful'
+      testCheckoutCreated,
+      message: 'Checkout system test successful - check the main page to see checkout details!'
     });
 
   } catch (error: any) {

@@ -44,9 +44,9 @@ export async function getData(filters: {
         // Get paginated data with ordering
         const { data: catalog } = await query.order('number', { ascending: true }).range(from, to);
         
-        // Get checkout information for all books if user is authenticated
+        // Get checkout information for all books with user details
         let checkoutsMap = new Map();
-        if (currentUserId && catalog) {
+        if (catalog) {
             const bookNumbers = catalog.map(book => book.number);
             const { data: checkouts } = await supabase
                 .from('checkouts')
@@ -54,9 +54,52 @@ export async function getData(filters: {
                 .in('book_id', bookNumbers)
                 .is('returned_at', null); // Only get active checkouts
             
-            if (checkouts) {
+            if (checkouts && checkouts.length > 0) {
+                const userIds = checkouts.map(c => c.user_id);
+                console.log(userIds)
+                
+                const { data: users } = await supabase
+                    .from('users')
+                    .select('id, full_name, email, phone_number')
+                    .in('id', userIds);
+
+                // Get phone numbers from auth metadata for users who don't have it in the users table
+                const { data: authUsers } = await supabase.auth.admin.listUsers();
+                const authUsersMap = new Map();
+                authUsers?.users?.forEach(authUser => {
+                    authUsersMap.set(authUser.id, {
+                        phone: authUser.user_metadata?.phone_number || authUser.phone || ''
+                    });
+                });
+
+                // Merge phone numbers from auth metadata if not available in users table
+                if (users) {
+                    users.forEach(user => {
+                        if (!user.phone_number && authUsersMap.has(user.id)) {
+                            user.phone_number = authUsersMap.get(user.id).phone;
+                        }
+                    });
+                }
+
+                // Create a map of user information
+                const usersMap = new Map();
+                if (users) {
+                    users.forEach(user => {
+                        usersMap.set(user.id, user);
+                    });
+                }
+
                 checkouts.forEach(checkout => {
-                    checkoutsMap.set(checkout.book_id, checkout);
+                    console.log(checkout)
+                    const user = usersMap.get(checkout.user_id);
+                    console.log(user)
+                    checkoutsMap.set(checkout.book_id, {
+                        ...checkout,
+                        userDisplay: user?.full_name || 'Unknown User',
+                        userEmail: user?.email || '',
+                        userPhone: user?.phone_number || '',
+                        checkedOutDate: new Date(checkout.checked_out_at).toLocaleDateString()
+                    });
                 });
             }
         }
@@ -66,7 +109,8 @@ export async function getData(filters: {
             ...book,
             isCheckedOut: checkoutsMap.has(book.number),
             checkedOutByCurrentUser: currentUserId && checkoutsMap.has(book.number) && 
-                checkoutsMap.get(book.number)?.user_id === currentUserId
+                checkoutsMap.get(book.number)?.user_id === currentUserId,
+            checkoutDetails: checkoutsMap.get(book.number) || null
         })) || [];
         
         return {
@@ -206,9 +250,9 @@ export async function getData(filters: {
     // Apply pagination to the main query and fetch data with ordering
     const { data: catalog } = await query.order('number', { ascending: true }).range(from, to);
     
-    // Get checkout information for all books if user is authenticated
+    // Get checkout information for all books with user details
     let checkoutsMap = new Map();
-    if (currentUserId && catalog) {
+    if (catalog) {
         const bookNumbers = catalog.map(book => book.number);
         const { data: checkouts } = await supabase
             .from('checkouts')
@@ -216,9 +260,34 @@ export async function getData(filters: {
             .in('book_id', bookNumbers)
             .is('returned_at', null); // Only get active checkouts
         
-        if (checkouts) {
+        if (checkouts && checkouts.length > 0) {
+            // Get user information for checkout users from users table
+            const userIds = checkouts.map(c => c.user_id);
+            
+            // Query users table for user details
+            const { data: users } = await supabase
+                .from('users')
+                .select('id, full_name, email, phone_number')
+                .in('id', userIds);
+            
+            // Create a map of user information
+            const usersMap = new Map();
+            if (users) {
+                users.forEach(user => {
+                    usersMap.set(user.id, user);
+                });
+            }
+
+            
             checkouts.forEach(checkout => {
-                checkoutsMap.set(checkout.book_id, checkout);
+                const user = usersMap.get(checkout.user_id);
+                checkoutsMap.set(checkout.book_id, {
+                    ...checkout,
+                    userDisplay: user?.full_name || 'Unknon User',
+                    userEmail: user?.email || '',
+                    userPhone: user?.phone_number || '',
+                    checkedOutDate: new Date(checkout.checked_out_at).toLocaleDateString()
+                });
             });
         }
     }
@@ -228,7 +297,8 @@ export async function getData(filters: {
         ...book,
         isCheckedOut: checkoutsMap.has(book.number),
         checkedOutByCurrentUser: currentUserId && checkoutsMap.has(book.number) && 
-            checkoutsMap.get(book.number)?.user_id === currentUserId
+            checkoutsMap.get(book.number)?.user_id === currentUserId,
+        checkoutDetails: checkoutsMap.get(book.number) || null
     })) || [];
     
     return {

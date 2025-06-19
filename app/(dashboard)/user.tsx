@@ -47,11 +47,6 @@ export async function User() {
             </div>
           )}
           {/* Admin crown indicator */}
-          {isAdmin && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center text-xs">
-              👑
-            </div>
-          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -63,35 +58,23 @@ export async function User() {
             </p>
             {user.user_metadata?.phone_number && (
               <p className="text-xs leading-none text-muted-foreground">
-                📱 {user.user_metadata.phone_number}
+                {user.user_metadata.phone_number}
               </p>
             )}
             {/* Admin Status Badge */}
             <div className="flex items-center gap-1 mt-1">
               {isAdmin ? (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  👑 Admin
+                  Admin
                 </span>
               ) : (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                  👤 User
+                  User
                 </span>
               )}
             </div>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {isAdmin && (
-          <>
-            <DropdownMenuItem className="text-green-600 dark:text-green-400 font-medium">
-              <span className="mr-2">⚡</span>
-              Admin Dashboard
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
-        )}
-        <DropdownMenuItem>Settings</DropdownMenuItem>
-        <DropdownMenuItem>Support</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <SignOutButton />

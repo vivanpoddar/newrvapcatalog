@@ -11,8 +11,9 @@ import {
 import { Modal } from "../ui/modal";
 import { ConfirmDeleteModal } from "../ui/confirm-delete-modal";
 import { EditItemModal, EditableItem } from "../ui/edit-item-modal";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { useState } from "react";
-import { PencilIcon, TrashIcon, CheckoutIcon, ReturnIcon } from "../icons";
+import { PencilIcon, TrashIcon, ReturnIcon, BookIcon, InfoIcon } from "../icons";
 import { deleteProduct, updateProduct, checkoutBook, returnBook } from "../../app/(dashboard)/actions";
 
 interface Order {
@@ -31,6 +32,14 @@ interface Order {
   editedtranslated: string | string[] | null; // Add missing field
   isCheckedOut?: boolean; // Checkout status
   checkedOutByCurrentUser?: boolean; // Whether current user has checked it out
+  checkoutDetails?: {
+    user_id: string;
+    checked_out_at: string;
+    userDisplay: string;
+    userEmail: string;
+    userPhone: string;
+    checkedOutDate: string;
+  } | null; // Details about who checked it out and when
 }
 
 export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?: boolean }) {
@@ -63,7 +72,8 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
         rev: item.rev ?? "",
         editedtranslated: item.editedtranslated ?? "",
         isCheckedOut: item.isCheckedOut ?? false,
-        checkedOutByCurrentUser: item.checkedOutByCurrentUser ?? false
+        checkedOutByCurrentUser: item.checkedOutByCurrentUser ?? false,
+        checkoutDetails: item.checkoutDetails ?? null
       }))
     : [];
 
@@ -216,9 +226,10 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
   };
 
   return (
-    <div className="overflow-hidden bg-white border-[#e5e7eb]">
-      {/* Pagination info header */}
-      {paginationInfo && (
+    <TooltipProvider>
+      <div className="overflow-hidden bg-white border-[#e5e7eb]">
+        {/* Pagination info header */}
+        {paginationInfo && (
         <div className="px-4 py-2 border-b border-[#e5e7eb] bg-gray-50">
           <div className="flex justify-between items-center text-sm text-gray-600">
             <span>
@@ -309,35 +320,13 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                 >
                   Rev.
                 </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Status
-                </TableCell>
-                {isAdmin && (
-                  <>
-                    <TableCell
-                      isHeader
-                      className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Edit
-                    </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Delete
-                    </TableCell>
-                  </>
-                )}
               </TableRow>
             </TableHeader>
 
             {/* Table Body */}
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
               {tableData.map((order) => (
-                <TableRow className="border-b border-[#e5e7eb]" key={order.number}>
+                <TableRow className={`border-b border-[#e5e7eb] ${order.isCheckedOut ? "bg-amber-300" : ""}`} key={order.number}>
                   <TableCell className="py-1 px-2">
                   <div className="font-bold text-gray-500 flex items-center">
                     {order.number}                     
@@ -406,17 +395,44 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                   </TableCell>
                   <TableCell className="py-1 px-1">
                     {order.checkedOutByCurrentUser ? (
-                      <div 
-                        className={`py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ${
-                          checkoutStates[order.number.toString()] ? 'opacity-50' : 'hover:bg-blue-500'
-                        }`}
-                        onClick={() => !checkoutStates[order.number.toString()] && handleReturn(order.number.toString())}
-                      >
-                        <ReturnIcon height={16} color="#6b7280"></ReturnIcon>
+                      <div className="space-y-1">
+                        <div 
+                          className={`py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ${
+                            checkoutStates[order.number.toString()] ? 'opacity-50' : 'hover:bg-blue-500'
+                          }`}
+                          onClick={() => !checkoutStates[order.number.toString()] && handleReturn(order.number.toString())}
+                        >
+                          <ReturnIcon height={8} color="#6b7280"></ReturnIcon>
+                        </div>
+                        <div className="text-xs text-blue-600 text-center">
+                          Your checkout
+                        </div>
+                      </div>
+                    ) : order.isCheckedOut && order.checkoutDetails ? (
+                      <div className="space-y-1">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="bg-yellow-300 hover:bg-white py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
+                                <InfoIcon height={16} color="#6b7280" />
+                              </div>                          
+                            </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="space-y-1">
+                              <div className="text-s font-bold leading-none ">{order.checkoutDetails.userDisplay}</div>
+                              {order.checkoutDetails.userEmail && (
+                                  <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userEmail}</div>
+                              )}
+                              {order.checkoutDetails.userPhone && (
+                                  <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userPhone}</div>
+                              )}
+                                <div className="text-xs leading-none text-muted-foreground">Since {order.checkoutDetails.checkedOutDate}</div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     ) : order.isCheckedOut ? (
-                      <div className="py-1 border-[#6b7280] border rounded flex justify-center items-center text-xs text-gray-500">
-                        Checked Out
+                      <div className="hover:bg-red-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
+                        <InfoIcon height={16} color="#6b7280" />
                       </div>
                     ) : (
                       <div 
@@ -425,13 +441,13 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                         }`}
                         onClick={() => !checkoutStates[order.number.toString()] && handleCheckout(order.number.toString())}
                       >
-                        <CheckoutIcon height={16} color="#6b7280"></CheckoutIcon>
+                        <BookIcon height={16} color="#6b7280"></BookIcon>
                       </div>
                     )}
                   </TableCell>
                   {isAdmin && (
                     <>
-                      <TableCell className="py-1 px-1">
+                      <TableCell className="py-1 pr-1">
                       <div 
                         className="hover:bg-yellow-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer"
                         onClick={() => handleEdit(order)}
@@ -487,6 +503,6 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
         isDeleting={isDeleting}
       />
     </div>
-    
+    </TooltipProvider>
   );
 }
