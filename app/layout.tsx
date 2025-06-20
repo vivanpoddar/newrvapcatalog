@@ -5,9 +5,9 @@ import { Analytics } from '@vercel/analytics/react';
 import { Theme } from "@radix-ui/themes";
 
 export const metadata = {
-  title: 'Next.js App Router + NextAuth + Tailwind CSS',
+  title: 'Ashrama Catalog',
   description:
-    'A user admin dashboard configured with Next.js, Postgres, NextAuth, Tailwind CSS, TypeScript, and Prettier.'
+    'Ramakrishna Vedanta Ashrama of Pittsburgh Digital Library and Catalog. Explore spiritual literature, teachings, and resources.'
 };
 
 export default function RootLayout({
@@ -17,6 +17,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <title>Digital Catalog</title>
+      </head>
       <body className="flex min-h-screen w-full flex-col">
         <Theme>{children}</Theme>
         <Analytics />
