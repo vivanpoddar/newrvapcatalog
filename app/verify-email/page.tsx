@@ -10,11 +10,11 @@ import {
     CardTitle
 } from '@/components/ui/card';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
-export default function VerifyEmailPage() {
+function VerifyEmailPageInner() {
     const [isLoading, setIsLoading] = useState(true);
     const [isVerified, setIsVerified] = useState(false);
     const [error, setError] = useState('');
@@ -110,7 +110,7 @@ export default function VerifyEmailPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                     <p className="mt-2 text-gray-600">Verifying your email...</p>
@@ -121,10 +121,9 @@ export default function VerifyEmailPage() {
 
     if (isVerified) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-md w-full space-y-8">
                     <div className="text-center">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">RVAP Catalog</h1>
                         <p className="text-gray-600">Email verification successful!</p>
                     </div>
                     
@@ -152,27 +151,20 @@ export default function VerifyEmailPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <img src="logo.svg" height={1000} width={1000} className='-left-100 fixed -z-10'></img>
             <div className="max-w-md w-full space-y-8">
-                <div className="text-center">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">RVAP Catalog</h1>
-                    <p className="text-gray-600">Please verify your email address</p>
-                </div>
                 
                 <Card className="w-full">
                     <CardHeader>
-                        <CardTitle className="text-2xl text-center">Check Your Email</CardTitle>
-                        <CardDescription className="text-center">
-                            We've sent a verification link to your email address
-                        </CardDescription>
+                        <CardTitle className="text-2xl text-center">Email Verification</CardTitle>
                     </CardHeader>
                     <CardContent className="text-center space-y-4">
-                        <div className="text-6xl">📧</div>
                         <p className="text-sm text-gray-600">
-                            Please check your email and click the verification link to activate your account.
+                            Please check your email and click the verification link to activate your account. Check your junk folder. If you don't see any emails, sign up again.
                         </p>
-                        <p className="text-xs text-gray-500">
-                            Don't forget to check your spam folder if you don't see the email.
+                        <p>
+                            You will be redirected to the dashboard once your email is verified.
                         </p>
                         
                         {error && (
@@ -188,14 +180,6 @@ export default function VerifyEmailPage() {
                         )}
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
-                        <Button 
-                            onClick={handleResendEmail}
-                            disabled={resendLoading}
-                            variant="outline" 
-                            className="w-full"
-                        >
-                            {resendLoading ? 'Sending...' : 'Resend Verification Email'}
-                        </Button>
                         <Button asChild className="w-full" variant="outline">
                             <Link href="/login">Back to Sign In</Link>
                         </Button>
@@ -203,9 +187,17 @@ export default function VerifyEmailPage() {
                 </Card>
                 
                 <div className="text-center text-sm text-gray-500">
-                    <p>Need help? Contact your administrator</p>
+                    <p>Report any issues to vivanneil@outlook.com</p>
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense>
+            <VerifyEmailPageInner />
+        </Suspense>
     );
 }

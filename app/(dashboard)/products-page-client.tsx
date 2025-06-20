@@ -886,27 +886,27 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
           <div className='mb-2'>
               <TabsList>
                   {/* Genre/Category Tabs */}
-                  <TabsTrigger value="CLB" title="Culture & Literature Bengali">CLB</TabsTrigger>
-                  <TabsTrigger value="DDL" title="Devotional Drama & Literature">DDL</TabsTrigger>
-                  <TabsTrigger value="DMW" title="Devotional Music & Worship">DMW</TabsTrigger>
+                  <TabsTrigger value="CLB" title="Class books">CLB</TabsTrigger>
+                  <TabsTrigger value="DDL" title="Lives of Direct Disciples of Sri Ramakrishna">DDL</TabsTrigger>
+                  <TabsTrigger value="DMW" title="Divine mother worship">DMW</TabsTrigger>
                   <TabsTrigger value="GIT" title="Gita">GIT</TabsTrigger>
                   <TabsTrigger value="HIS" title="History">HIS</TabsTrigger>
-                  <TabsTrigger value="HMS" title="Hymns & Sacred Music">HMS</TabsTrigger>
-                  <TabsTrigger value="KID" title="Kids & Children">KID</TabsTrigger>
-                  <TabsTrigger value="MNP" title="Mahatma & Nonviolent Philosophy">MNP</TabsTrigger>
-                  <TabsTrigger value="ODL" title="Oriya Devotional Literature">ODL</TabsTrigger>
-                  <TabsTrigger value="OPH" title="Oriental Philosophy">OPH</TabsTrigger>
-                  <TabsTrigger value="PIL" title="Pilgrimage">PIL</TabsTrigger>
+                  <TabsTrigger value="HMS" title="Holy Mother, Life and Teachings">HMS</TabsTrigger>
+                  <TabsTrigger value="KID" title="Children">KID</TabsTrigger>
+                  <TabsTrigger value="MNP" title="Mythology & Puranas">MNP</TabsTrigger>
+                  <TabsTrigger value="ODL" title="Lives of Other Disciples">ODL</TabsTrigger>
+                  <TabsTrigger value="OPH" title="Other Philosophies">OPH</TabsTrigger>
+                  <TabsTrigger value="PIL" title="Pilgrimage & Tourism">PIL</TabsTrigger>
                   <TabsTrigger value="SCI" title="Science">SCI</TabsTrigger>
-                  <TabsTrigger value="SER" title="Sermons">SER</TabsTrigger>
-                  <TabsTrigger value="SHR" title="Shrimad Bhagavatam">SHR</TabsTrigger>
-                  <TabsTrigger value="SMH" title="Sanskrit Mantras & Hymns">SMH</TabsTrigger>
-                  <TabsTrigger value="SNK" title="Sanskrit">SNK</TabsTrigger>
-                  <TabsTrigger value="SPD" title="Spiritual Development">SPD</TabsTrigger>
-                  <TabsTrigger value="SRK" title="Sri Krishna">SRK</TabsTrigger>
-                  <TabsTrigger value="VED" title="Vedic Literature">VED</TabsTrigger>
-                  <TabsTrigger value="VIV" title="Vivekananda">VIV</TabsTrigger>
-                  <TabsTrigger value="UVO" title="Upanishads & Vedic Ontology">UVO</TabsTrigger>
+                  <TabsTrigger value="SER" title="Service to humanity">SER</TabsTrigger>
+                  <TabsTrigger value="SHR" title="Subset of Hindu religion">SHR</TabsTrigger>
+                  <TabsTrigger value="SMH" title="Songs, Mantra, Shlokas, Prayers & Hymns">SMH</TabsTrigger>
+                  <TabsTrigger value="SNK" title="Sankara">SNK</TabsTrigger>
+                  <TabsTrigger value="SPD" title="Spiritual Practice & Discipline">SPD</TabsTrigger>
+                  <TabsTrigger value="SRK" title="Sri Ramakrishna, Life & Teachings">SRK</TabsTrigger>
+                  <TabsTrigger value="VED" title="Vedanta Philosophy">VED</TabsTrigger>
+                  <TabsTrigger value="VIV" title="Swami Vivekananda, Life & Teachings">VIV</TabsTrigger>
+                  <TabsTrigger value="UVO" title="Upanishads, Vedas, Sutras etc.">UVO</TabsTrigger>
                   
                   {/* Visual separator between genres and languages */}
                   <span className="mx-2 h-full w-px bg-border self-center" />

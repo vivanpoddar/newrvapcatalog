@@ -141,22 +141,14 @@ export default function SignUpPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <img src="logo.svg" height={1000} width={1000} className='-left-100 fixed -z-10'></img>
+
             <div className="max-w-md w-full space-y-8">
-                <div className="text-center">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">RVAP Catalog</h1>
-                    <p className="text-gray-600">Create your account to access the catalog management system</p>
-                </div>
 
                 <Card className="w-full">
                     <CardHeader>
                         <CardTitle className="text-2xl text-center">Sign Up</CardTitle>
-                        <CardDescription className="text-center">
-                            Enter your details to create a new account
-                        </CardDescription>
-                        <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded mt-2">
-                            📧 You'll need to verify your email address before you can access the catalog.
-                        </div>
                     </CardHeader>
                     <form onSubmit={handleSubmit}>
                         <CardContent className="grid gap-4">
@@ -291,9 +283,8 @@ export default function SignUpPage() {
                             </Button>
 
                             <div className="text-center text-sm text-gray-600">
-                                Already have an account?{' '}
                                 <Link href="/login" className="text-primary hover:underline font-medium">
-                                    Sign in here
+                                    Back to sign in menu
                                 </Link>
                             </div>
                         </CardFooter>

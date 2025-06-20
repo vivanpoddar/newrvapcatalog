@@ -73,19 +73,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <img src="logo.svg" height={1000} width={1000} className='-left-100 fixed -z-10'></img>
       <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">RVAP Catalog</h1>
-          <p className="text-gray-600">Access the digital catalog management system</p>
-        </div>
+        <h1 className="text-3xl font-bold text-center mb-6">Ramakrishna Vedanta Ashrama of Pittsburgh Library</h1>
         
-        <Card className="w-full">
+        <Card className="w-full z-100">
           <CardHeader>
-            <CardTitle className="text-2xl text-center">Sign In</CardTitle>
-            <CardDescription className="text-center">
-              Enter your credentials to access the catalog management system
-            </CardDescription>
+            <CardTitle className="text-2xl text-center">Sign in</CardTitle>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="grid gap-4">
@@ -126,9 +121,8 @@ export default function LoginPage() {
           
           <div className="px-6 pb-6">
             <div className="text-center text-sm text-gray-600">
-              Don't have an account?{' '}
               <Link href="/signup" className="text-primary hover:underline font-medium">
-                Sign up here
+                Sign up here if you don't have an account
               </Link>
             </div>
           </div>
