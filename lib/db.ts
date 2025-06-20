@@ -143,52 +143,55 @@ export async function getData(filters: {
         console.log('Applied year range filter:', filters.yearRange);
     }
 
-    // Apply search queries
+    // Build search query for RPC search
+    let searchQuery = '';
+    const searchTerms = [];
+    
+    // Add individual search fields to search terms
+    if (filters.titleSearch && filters.titleSearch.trim()) {
+        searchTerms.push(filters.titleSearch.trim());
+    }
+    
+    if (filters.idSearch && filters.idSearch.trim()) {
+        searchTerms.push(filters.idSearch.trim());
+    }
+    
+    if (filters.authorSearch && filters.authorSearch.trim()) {
+        searchTerms.push(filters.authorSearch.trim());
+    }
+
+    // Add search queries to search terms
     if (filters.searchQueries && filters.searchQueries.length > 0) {
         filters.searchQueries.forEach(searchQuery => {
             const { criteria, query: searchValue } = searchQuery;
-            
-            switch (criteria) {
-                case "title":
-                    query = query.ilike('title', `%${searchValue}%`);
-                    console.log('Applied title search:', searchValue);
-                    break;
-                case "category":
-                    query = query.ilike('category', `%${searchValue}%`);
-                    console.log('Applied category search:', searchValue);
-                    break;
-                case "language":
-                    // For array-type language columns, use array contains operator
-                    query = query.contains('language', [searchValue]);
-                    console.log('Applied language search:', searchValue);
-                    break;
-                case "author":
-                    query = query.or(`firstname.ilike.%${searchValue}%,lastname.ilike.%${searchValue}%`);
-                    console.log('Applied author search:', searchValue);
-                    break;
-                case "year":
-                    query = query.eq('pubyear', parseInt(searchValue));
-                    console.log('Applied year search:', searchValue);
-                    break;
+            // Add all search values to the combined search term
+            if (searchValue && searchValue.trim()) {
+                searchTerms.push(searchValue.trim());
             }
         });
     }
+    
+    // Combine all search terms for RPC search
+    searchQuery = searchTerms.join(' ');
+    
+    // Always use RPC search for consistency
+    query = supabase.rpc('search_catalog', { query: searchQuery });
+    console.log('Applied RPC search with combined query:', searchQuery);
 
-    // Apply individual search fields with fuzzy search
-    if (filters.titleSearch && filters.titleSearch.trim()) {
-        query = query.ilike('title', `%${filters.titleSearch.trim()}%`);
-        console.log('Applied titleSearch:', filters.titleSearch.trim());
+    // Apply additional filters after RPC search
+    if (filters.genres && filters.genres.length > 0 && !filters.genres.includes("All")) {
+        query = query.in('category', filters.genres);
+        console.log('Applied genre filters to RPC:', filters.genres);
     }
 
-    if (filters.idSearch && filters.idSearch.trim()) {
-        query = query.ilike('id', `%${filters.idSearch.trim()}%`);
-        console.log('Applied idSearch:', filters.idSearch.trim());
+    if (filters.languages && filters.languages.length > 0 && !filters.languages.includes("All")) {
+        query = query.overlaps('language', filters.languages);
+        console.log('Applied language filters to RPC:', filters.languages);
     }
 
-    if (filters.authorSearch && filters.authorSearch.trim()) {
-        const authorSearchTerm = filters.authorSearch.trim();
-        query = query.or(`firstname.ilike.%${authorSearchTerm}%,lastname.ilike.%${authorSearchTerm}%`);
-        console.log('Applied authorSearch:', authorSearchTerm);
+    if (filters.yearRange) {
+        query = query.gte('pubyear', filters.yearRange.min).lte('pubyear', filters.yearRange.max);
+        console.log('Applied year range filter to RPC:', filters.yearRange);
     }
 
     // Apply pagination
@@ -197,58 +200,33 @@ export async function getData(filters: {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    // Create a separate query for counting (without pagination)
-    let countQuery = supabase.from('catalog').select('*', { count: 'exact', head: true });
+    // Get total count using RPC search
+    let count = 0;
     
-    // Apply same filters to count query
+    // For RPC search, we need to get the actual results to count them
+    // since RPC doesn't support count directly
+    let rpcCountQuery = supabase.rpc('search_catalog', { query: searchQuery });
+    
+    // Apply same filters to RPC count query
     if (filters.genres && filters.genres.length > 0 && !filters.genres.includes("All")) {
-        countQuery = countQuery.in('category', filters.genres);
+        rpcCountQuery = rpcCountQuery.in('category', filters.genres);
     }
     if (filters.languages && filters.languages.length > 0 && !filters.languages.includes("All")) {
-        countQuery = countQuery.overlaps('language', filters.languages);
+        rpcCountQuery = rpcCountQuery.overlaps('language', filters.languages);
     }
     if (filters.yearRange) {
-        countQuery = countQuery.gte('pubyear', filters.yearRange.min).lte('pubyear', filters.yearRange.max);
+        rpcCountQuery = rpcCountQuery.gte('pubyear', filters.yearRange.min).lte('pubyear', filters.yearRange.max);
     }
-    if (filters.searchQueries && filters.searchQueries.length > 0) {
-        filters.searchQueries.forEach(searchQuery => {
-            const { criteria, query: searchValue } = searchQuery;
-            switch (criteria) {
-                case "title":
-                    countQuery = countQuery.ilike('title', `%${searchValue}%`);
-                    break;
-                case "category":
-                    countQuery = countQuery.ilike('category', `%${searchValue}%`);
-                    break;
-                case "language":
-                    // For array-type language columns, use array contains operator
-                    countQuery = countQuery.contains('language', [searchValue]);
-                    break;
-                case "author":
-                    countQuery = countQuery.or(`firstname.ilike.%${searchValue}%,lastname.ilike.%${searchValue}%`);
-                    break;
-                case "year":
-                    countQuery = countQuery.eq('pubyear', parseInt(searchValue));
-                    break;
-            }
-        });
-    }
-    if (filters.titleSearch && filters.titleSearch.trim()) {
-        countQuery = countQuery.ilike('title', `%${filters.titleSearch.trim()}%`);
-    }
-    if (filters.idSearch && filters.idSearch.trim()) {
-        countQuery = countQuery.ilike('id', `%${filters.idSearch.trim()}%`);
-    }
-    if (filters.authorSearch && filters.authorSearch.trim()) {
-        const authorSearchTerm = filters.authorSearch.trim();
-        countQuery = countQuery.or(`firstname.ilike.%${authorSearchTerm}%,lastname.ilike.%${authorSearchTerm}%`);
-    }
-
-    // Get total count
-    const { count } = await countQuery;
     
-    // Apply pagination to the main query and fetch data with ordering
-    const { data: catalog } = await query.order('number', { ascending: true }).range(from, to);
+    const { data: rpcCountData } = await rpcCountQuery;
+    count = rpcCountData?.length || 0;
+    
+    // Apply pagination to the RPC query and fetch data
+    // RPC function handles relevance ordering internally
+    const orderedQuery = query.range(from, to);
+    console.log('Applied pagination to RPC search results');
+    
+    const { data: catalog } = await orderedQuery;
     
     // Get checkout information for all books with user details
     let checkoutsMap = new Map();

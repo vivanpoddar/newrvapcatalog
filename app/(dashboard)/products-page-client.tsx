@@ -656,18 +656,20 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
 
   return (
       <Tabs value={selectedTabs} onValueChange={handleTabChange}>
-          <div className="mb-2 flex items-center">
-              <div className='flex'>
-                  <div className="inline-flex flex-col w-full rounded-md shadow-sm md:w-auto md:flex-row mr-2" role="group">
-                      <TabsList>
-                          <TabsTrigger value="">
-                              All
-                          </TabsTrigger>
-                          <span className="mx-1 h-full w-px bg-border self-center" />
-                          <DropdownMenu>
+          {/* Sticky filter and pagination container */}
+          <div className="sticky top-14 sm:top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 py-3 px-4">
+              <div className="mb-2 flex items-center">
+                  <div className='flex'>
+                      <div className="inline-flex flex-col w-full rounded-md md:w-auto md:flex-row mr-2" role="group">
+                          <TabsList>
+                              <TabsTrigger value="">
+                                  All
+                              </TabsTrigger>
+                              <span className="mx-1 h-full w-px bg-border self-center" />
+                              <DropdownMenu>
                                 <DropdownMenuTrigger className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm m-0.5 p-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
                                   isYearFilterActive 
-                                    ? 'bg-background text-foreground shadow-sm' 
+                                    ? 'bg-background text-foreground' 
                                     : 'hover:bg-background/50'
                                 }`}>
                                     {isYearFilterActive ? `Publication Year (${yearRange[0]} - ${yearRange[1]})` : 'Publication Year'}
@@ -1018,8 +1020,12 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
                   </TabsList>
               </div>
           </div>
+          </div>
 
-          <Catalog data={filteredCatalog} isAdmin={isAdmin}></Catalog>
+          {/* Content container with top padding to account for sticky header */}
+          <div className="pt-4">
+              <Catalog data={filteredCatalog} isAdmin={isAdmin}></Catalog>
+          </div>
 
           <CreateItemModal
             isOpen={isCreateModalOpen}
