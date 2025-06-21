@@ -12,7 +12,7 @@ import { Modal } from "../ui/modal";
 import { ConfirmDeleteModal } from "../ui/confirm-delete-modal";
 import { EditItemModal, EditableItem } from "../ui/edit-item-modal";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PencilIcon, TrashIcon, ReturnIcon, BookIcon, InfoIcon } from "../icons";
 import { deleteProduct, updateProduct, checkoutBook, returnBook } from "../../app/(dashboard)/actions";
 
@@ -51,6 +51,7 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [checkoutStates, setCheckoutStates] = useState<{ [key: string]: boolean }>({});
+  const [showCheckoutDetails, setShowCheckoutDetails] = useState<{ [key: string]: boolean }>({});
 
   // Since data is already a flat array when passed from products-page-client,
   // we don't need to navigate nested properties
@@ -225,6 +226,26 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
     }
   };
 
+  const toggleCheckoutDetails = (orderId: string) => {
+    setShowCheckoutDetails(prev => ({ 
+      ...prev, 
+      [orderId]: !prev[orderId] 
+    }));
+  };
+
+  // Close checkout details when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-checkout-details]')) {
+        setShowCheckoutDetails({});
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   return (
     <TooltipProvider delayDuration={0}>
       <div className="overflow-hidden bg-white border-[#e5e7eb]">
@@ -250,25 +271,13 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                       <ReturnIcon height={16} color="#6b7280"></ReturnIcon>
                     </div>
                   ) : order.isCheckedOut && order.checkoutDetails ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="hover:bg-white p-2 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
-                          <InfoIcon height={16} color="#6b7280" />
-                        </div>                          
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="space-y-1">
-                          <div className="text-s font-bold leading-none ">{order.checkoutDetails.userDisplay}</div>
-                          {order.checkoutDetails.userEmail && (
-                              <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userEmail}</div>
-                          )}
-                          {order.checkoutDetails.userPhone && (
-                              <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userPhone}</div>
-                          )}
-                            <div className="text-xs leading-none text-muted-foreground">Since {order.checkoutDetails.checkedOutDate}</div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
+                    <div 
+                      className="p-2 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer hover:bg-gray-100"
+                      onClick={() => toggleCheckoutDetails(order.id)}
+                      data-checkout-details
+                    >
+                      <InfoIcon height={16} color="#6b7280" />
+                    </div>
                   ) : order.isCheckedOut ? (
                     <div className="hover:bg-red-500 p-2 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
                       <InfoIcon height={16} color="#6b7280" />
@@ -332,6 +341,21 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                 {order.checkedOutByCurrentUser && (
                   <div className="text-xs text-blue-600 mt-2 font-medium">
                     You have checked out this book
+                  </div>
+                )}
+                
+                {order.isCheckedOut && order.checkoutDetails && showCheckoutDetails[order.id] && (
+                  <div className="mt-3 p-3 bg-gray-50 border rounded-md" data-checkout-details>
+                    <div className="space-y-1">
+                      <div className="text-sm font-semibold text-gray-800">{order.checkoutDetails.userDisplay}</div>
+                      {order.checkoutDetails.userEmail && (
+                        <div className="text-xs text-gray-600">{order.checkoutDetails.userEmail}</div>
+                      )}
+                      {order.checkoutDetails.userPhone && (
+                        <div className="text-xs text-gray-600">{order.checkoutDetails.userPhone}</div>
+                      )}
+                      <div className="text-xs text-gray-500">Since {order.checkoutDetails.checkedOutDate}</div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -413,12 +437,6 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                     className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400 hidden xl:table-cell"
                   >
                     Rev.
-                  </TableCell>
-                  <TableCell
-                    isHeader
-                    className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400"
-                  >
-                    Actions
                   </TableCell>
                 </TableRow>
               </TableHeader>
@@ -502,10 +520,14 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                             </div>
                           </div>
                         ) : order.isCheckedOut && order.checkoutDetails ? (
-                          <div className="space-y-1">
+                          <div className="space-y-1 relative">
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <div className="hover:bg-white p-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
+                                  <div 
+                                    className="hover:bg-white p-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer"
+                                    onClick={() => toggleCheckoutDetails(order.id)}
+                                    data-checkout-details
+                                  >
                                     <InfoIcon height={14} color="#6b7280" />
                                   </div>                          
                                 </TooltipTrigger>
@@ -522,6 +544,20 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                                 </div>
                               </TooltipContent>
                             </Tooltip>
+                            {showCheckoutDetails[order.id] && (
+                              <div className="absolute z-10 mt-1 right-0 p-2 bg-white border border-gray-200 rounded-md shadow-lg min-w-[200px]" data-checkout-details>
+                                <div className="space-y-1">
+                                  <div className="text-sm font-bold leading-none text-gray-800">{order.checkoutDetails.userDisplay}</div>
+                                  {order.checkoutDetails.userEmail && (
+                                      <div className="text-xs leading-none text-gray-600">{order.checkoutDetails.userEmail}</div>
+                                  )}
+                                  {order.checkoutDetails.userPhone && (
+                                      <div className="text-xs leading-none text-gray-600">{order.checkoutDetails.userPhone}</div>
+                                  )}
+                                    <div className="text-xs leading-none text-gray-500">Since {order.checkoutDetails.checkedOutDate}</div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ) : order.isCheckedOut ? (
                           <div className="hover:bg-red-500 p-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
