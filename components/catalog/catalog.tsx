@@ -229,233 +229,337 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
     <TooltipProvider delayDuration={0}>
       <div className="overflow-hidden bg-white border-[#e5e7eb]">
       
-      <div className="max-w-full overflow-x-auto">
-        <div className="min-w-[1102px]">
-          <Table>
-            {/* Table Header */}
-            <TableHeader className="border-b border-[#e5e7eb]">
-              <TableRow className="">
-                <TableCell
-                  isHeader
-                  className="px-2 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  #
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="py-3 px-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Title
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="py-3 px-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Category
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Language
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Count
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Cat. Count
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Cat. Index
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  ID
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Year
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  First
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Last
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-3 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Rev.
-                </TableCell>
-              </TableRow>
-            </TableHeader>
-
-            {/* Table Body */}
-            <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {tableData.map((order) => (
-                <TableRow className={`border-b border-[#e5e7eb] ${order.isCheckedOut ? "bg-amber-300" : ""}`} key={order.number}>
-                  <TableCell className="py-1 px-2">
-                  <div className="font-bold text-gray-500 flex items-center">
-                    {order.number}                     
-                  </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                  <div className="text-gray-500 flex items-center truncate" style={{ maxWidth: '18em' }}>
-                    {order.title}
-                  </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                  <div className="text-gray-500 flex items-center">
-                    {order.category}
-                  </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                  <div className="text-gray-500 flex items-center">
-                    {Array.isArray(order.language) 
-                      ? order.language.join(', ') 
-                      : order.language
-                    }
-                  </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                  <div className="text-gray-500 flex items-center">
-                    {order.count}
-                  </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                  <div className="text-gray-500 flex items-center">
-                    {order.categoryCount}
-                  </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <div className="text-gray-500 flex items-center">
-                      {order.categoryIndex}
+      {/* Mobile Card Layout */}
+      <div className="block md:hidden">
+        <div className="space-y-3 p-4">
+          {tableData.map((order) => (
+            <div 
+              key={order.number} 
+              className={`p-4 border rounded-lg shadow-sm ${order.isCheckedOut ? "bg-amber-50 border-amber-200" : "bg-white border-gray-200"}`}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div className="font-bold text-gray-900 text-lg">#{order.number}</div>
+                <div className="flex gap-2 items-center">
+                  {order.checkedOutByCurrentUser ? (
+                    <div 
+                      className={`p-2 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ${
+                        checkoutStates[order.number.toString()] ? 'opacity-50' : 'hover:bg-blue-500'
+                      }`}
+                      onClick={() => !checkoutStates[order.number.toString()] && handleReturn(order.number.toString())}
+                    >
+                      <ReturnIcon height={16} color="#6b7280"></ReturnIcon>
                     </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                  <div className="text-gray-500 flex items-center">
-                    {order.id}
-                  </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                  <div className="text-gray-500 flex items-center">
-                    {order.year}
-                  </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                  <div className="text-gray-500 flex items-center truncate" style={{ maxWidth: '10em' }}>
-                    {order.first}
-                  </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                  <div className="text-gray-500 flex items-center truncate" style={{ maxWidth: '10em' }}>
-                    {order.last}
-                  </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <div className="text-gray-500 flex items-center">
-                    {order.editedtranslated && (Array.isArray(order.editedtranslated) 
-                      ? order.editedtranslated.join(', ') 
-                      : order.editedtranslated)
-                    }
+                  ) : order.isCheckedOut && order.checkoutDetails ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="hover:bg-white p-2 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
+                          <InfoIcon height={16} color="#6b7280" />
+                        </div>                          
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="space-y-1">
+                          <div className="text-s font-bold leading-none ">{order.checkoutDetails.userDisplay}</div>
+                          {order.checkoutDetails.userEmail && (
+                              <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userEmail}</div>
+                          )}
+                          {order.checkoutDetails.userPhone && (
+                              <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userPhone}</div>
+                          )}
+                            <div className="text-xs leading-none text-muted-foreground">Since {order.checkoutDetails.checkedOutDate}</div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : order.isCheckedOut ? (
+                    <div className="hover:bg-red-500 p-2 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
+                      <InfoIcon height={16} color="#6b7280" />
                     </div>
-                  </TableCell>
-                  <TableCell className="py-1 px-1">
-                    {order.checkedOutByCurrentUser ? (
-                      <div className="space-y-1">
-                        <div 
-                          className={`py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ${
-                            checkoutStates[order.number.toString()] ? 'opacity-50' : 'hover:bg-blue-500'
-                          }`}
-                          onClick={() => !checkoutStates[order.number.toString()] && handleReturn(order.number.toString())}
-                        >
-                          <ReturnIcon height={16} color="#6b7280"></ReturnIcon>
-                        </div>
-                        <div className="text-xs text-blue-600 text-center">
-                          Your checkout
-                        </div>
-                      </div>
-                    ) : order.isCheckedOut && order.checkoutDetails ? (
-                      <div className="space-y-1">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="hover:bg-white py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
-                                <InfoIcon height={16} color="#6b7280" />
-                              </div>                          
-                            </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="space-y-1">
-                              <div className="text-s font-bold leading-none ">{order.checkoutDetails.userDisplay}</div>
-                              {order.checkoutDetails.userEmail && (
-                                  <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userEmail}</div>
-                              )}
-                              {order.checkoutDetails.userPhone && (
-                                  <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userPhone}</div>
-                              )}
-                                <div className="text-xs leading-none text-muted-foreground">Since {order.checkoutDetails.checkedOutDate}</div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                    ) : order.isCheckedOut ? (
-                      <div className="hover:bg-red-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
-                        <InfoIcon height={16} color="#6b7280" />
-                      </div>
-                    ) : (
-                      <div 
-                        className={`py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ${
-                          checkoutStates[order.number.toString()] ? 'opacity-50' : 'hover:bg-green-500'
-                        }`}
-                        onClick={() => !checkoutStates[order.number.toString()] && handleCheckout(order.number.toString())}
-                      >
-                        <BookIcon height={16} color="#6b7280"></BookIcon>
-                      </div>
-                    )}
-                  </TableCell>
+                  ) : (
+                    <div 
+                      className={`p-2 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ${
+                        checkoutStates[order.number.toString()] ? 'opacity-50' : 'hover:bg-green-500'
+                      }`}
+                      onClick={() => !checkoutStates[order.number.toString()] && handleCheckout(order.number.toString())}
+                    >
+                      <BookIcon height={16} color="#6b7280"></BookIcon>
+                    </div>
+                  )}
                   {isAdmin && (
                     <>
-                      <TableCell className="py-1 pr-1">
                       <div 
-                        className="hover:bg-yellow-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer"
+                        className="hover:bg-yellow-500 p-2 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer"
                         onClick={() => handleEdit(order)}
                       >
                         <PencilIcon height={16} color="#6b7280"></PencilIcon>
                       </div>
-                      </TableCell>
-                      <TableCell className="py-1 pr-1">
                       <div 
-                        className="hover:bg-red-500 py-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer"
+                        className="hover:bg-red-500 p-2 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer"
                         onClick={() => handleDelete(order.id, order.title)}
                       >
                         <TrashIcon height={16} color="#6b7280"></TrashIcon>
                       </div>
-                      </TableCell>
                     </>
                   )}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div>
+                  <div className="font-semibold text-gray-900 text-base mb-1">{order.title}</div>
+                  <div className="text-sm text-gray-600">{order.category}</div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-500">Language:</span>
+                    <div className="text-gray-700">
+                      {Array.isArray(order.language) ? order.language.join(', ') : order.language}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-500">Year:</span>
+                    <div className="text-gray-700">{order.year}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-500">Author:</span>
+                    <div className="text-gray-700">{order.first} {order.last}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-500">ID:</span>
+                    <div className="text-gray-700">{order.id}</div>
+                  </div>
+                </div>
+                
+                {order.checkedOutByCurrentUser && (
+                  <div className="text-xs text-blue-600 mt-2 font-medium">
+                    You have checked out this book
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tablet/Desktop Table Layout */}
+      <div className="hidden md:block">
+        <div className="max-w-full overflow-x-auto">
+          <div className="min-w-[800px] lg:min-w-[1102px]">
+            <Table>
+              {/* Table Header */}
+              <TableHeader className="border-b border-[#e5e7eb]">
+                <TableRow className="">
+                  <TableCell
+                    isHeader
+                    className="px-2 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400"
+                  >
+                    #
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="py-3 px-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400"
+                  >
+                    Title
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="py-3 px-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400"
+                  >
+                    Category
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400 hidden lg:table-cell"
+                  >
+                    Language
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400 hidden xl:table-cell"
+                  >
+                    Count
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400 hidden xl:table-cell"
+                  >
+                    Cat. Count
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400 hidden xl:table-cell"
+                  >
+                    Cat. Index
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400 hidden lg:table-cell"
+                  >
+                    ID
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400"
+                  >
+                    Year
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400"
+                  >
+                    Author
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400 hidden xl:table-cell"
+                  >
+                    Rev.
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-3 py-3 font-medium text-gray-500 text-start text-xs dark:text-gray-400"
+                  >
+                    Actions
+                  </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+
+              {/* Table Body */}
+              <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                {tableData.map((order) => (
+                  <TableRow className={`border-b border-[#e5e7eb] ${order.isCheckedOut ? "bg-amber-50" : ""}`} key={order.number}>
+                    <TableCell className="py-2 px-2">
+                      <div className="font-bold text-gray-500 flex items-center">
+                        {order.number}                     
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2">
+                      <div className="text-gray-500 flex items-center truncate max-w-[200px] md:max-w-[250px]">
+                        {order.title}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2">
+                      <div className="text-gray-500 flex items-center truncate max-w-[120px]">
+                        {order.category}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 hidden lg:table-cell">
+                      <div className="text-gray-500 flex items-center truncate max-w-[100px]">
+                        {Array.isArray(order.language) 
+                          ? order.language.join(', ') 
+                          : order.language
+                        }
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 hidden xl:table-cell">
+                      <div className="text-gray-500 flex items-center">
+                        {order.count}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 hidden xl:table-cell">
+                      <div className="text-gray-500 flex items-center">
+                        {order.categoryCount}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 hidden xl:table-cell">
+                      <div className="text-gray-500 flex items-center">
+                        {order.categoryIndex}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 hidden lg:table-cell">
+                      <div className="text-gray-500 flex items-center truncate max-w-[80px]">
+                        {order.id}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2">
+                      <div className="text-gray-500 flex items-center">
+                        {order.year}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2">
+                      <div className="text-gray-500 flex items-center truncate max-w-[120px]">
+                        {order.first} {order.last}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 hidden xl:table-cell">
+                      <div className="text-gray-500 flex items-center truncate max-w-[100px]">
+                        {order.editedtranslated && (Array.isArray(order.editedtranslated) 
+                          ? order.editedtranslated.join(', ') 
+                          : order.editedtranslated)
+                        }
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2 px-2">
+                      <div className="flex gap-1 items-center">
+                        {order.checkedOutByCurrentUser ? (
+                          <div className="space-y-1">
+                            <div 
+                              className={`p-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ${
+                                checkoutStates[order.number.toString()] ? 'opacity-50' : 'hover:bg-blue-500'
+                              }`}
+                              onClick={() => !checkoutStates[order.number.toString()] && handleReturn(order.number.toString())}
+                            >
+                              <ReturnIcon height={14} color="#6b7280"></ReturnIcon>
+                            </div>
+                          </div>
+                        ) : order.isCheckedOut && order.checkoutDetails ? (
+                          <div className="space-y-1">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="hover:bg-white p-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
+                                    <InfoIcon height={14} color="#6b7280" />
+                                  </div>                          
+                                </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="space-y-1">
+                                  <div className="text-s font-bold leading-none ">{order.checkoutDetails.userDisplay}</div>
+                                  {order.checkoutDetails.userEmail && (
+                                      <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userEmail}</div>
+                                  )}
+                                  {order.checkoutDetails.userPhone && (
+                                      <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userPhone}</div>
+                                  )}
+                                    <div className="text-xs leading-none text-muted-foreground">Since {order.checkoutDetails.checkedOutDate}</div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        ) : order.isCheckedOut ? (
+                          <div className="hover:bg-red-500 p-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer">
+                            <InfoIcon height={14} color="#6b7280" />
+                          </div>
+                        ) : (
+                          <div 
+                            className={`p-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ${
+                              checkoutStates[order.number.toString()] ? 'opacity-50' : 'hover:bg-green-500'
+                            }`}
+                            onClick={() => !checkoutStates[order.number.toString()] && handleCheckout(order.number.toString())}
+                          >
+                            <BookIcon height={14} color="#6b7280"></BookIcon>
+                          </div>
+                        )}
+                        {isAdmin && (
+                          <>
+                            <div 
+                              className="hover:bg-yellow-500 p-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer ml-1"
+                              onClick={() => handleEdit(order)}
+                            >
+                              <PencilIcon height={14} color="#6b7280"></PencilIcon>
+                            </div>
+                            <div 
+                              className="hover:bg-red-500 p-1 border-[#6b7280] border rounded flex justify-center items-center transition duration-300 cursor-pointer"
+                              onClick={() => handleDelete(order.id, order.title)}
+                            >
+                              <TrashIcon height={14} color="#6b7280"></TrashIcon>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
       

@@ -119,69 +119,41 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
   }, []); // Only run on mount
 
   const handleTabChange = useCallback((values: string[]) => {
+    console.log('handleTabChange called with:', values);
     let filteredValues = values;
     
-    // Remove year and search filters if they exist in the values
-    filteredValues = values.filter(value => !value.startsWith('year-') && !value.startsWith('search-'));
+    // Handle special tab values (publication-year, search-options) separately
+    const specialTabs = ['publication-year', 'search-options'];
+    const normalTabs = filteredValues.filter(value => !specialTabs.includes(value));
+    const selectedSpecialTabs = filteredValues.filter(value => specialTabs.includes(value));
     
-    // Prevent empty selection - if no tabs selected, keep "All" selected
-    if (filteredValues.length === 0) {
-      filteredValues = [""];
-    }
+    console.log('Normal tabs:', normalTabs, 'Special tabs:', selectedSpecialTabs);
     
-    // Handle mutual exclusion between "All" and specific tabs
-    if (filteredValues.includes("") && filteredValues.length > 1) {
-      // If "All" is being added with other tabs, only keep "All"
+    // Remove dynamic filter values (year-*, search-*) but keep publication-year and search-options
+    const cleanNormalTabs = normalTabs.filter(value => !value.startsWith('year-') && !value.startsWith('search-'));
+    
+    // Combine clean normal tabs with special tabs
+    filteredValues = [...cleanNormalTabs, ...selectedSpecialTabs];
+    
+    // Handle mutual exclusion between "All" and specific category/language tabs
+    const categoryLanguageTabs = filteredValues.filter(value => !specialTabs.includes(value));
+    
+    if (categoryLanguageTabs.includes("") && categoryLanguageTabs.length > 1) {
+      // If "All" is being added with other category/language tabs, only keep "All" + special tabs
       if (!selectedTabs.includes("")) {
-        filteredValues = [""];
+        filteredValues = ["", ...selectedSpecialTabs];
       } else {
         // If "All" was already selected and other tabs are being added, remove "All"
-        filteredValues = filteredValues.filter(value => value !== "");
+        filteredValues = categoryLanguageTabs.filter(value => value !== "").concat(selectedSpecialTabs);
       }
     }
     
-    // Final check: prevent completely empty selection by keeping "All"
-    if (filteredValues.length === 0) {
-      filteredValues = [""];
+    // Ensure we always have at least "All" for category/language selection if no category tabs are selected
+    if (categoryLanguageTabs.length === 0) {
+      filteredValues = ["", ...selectedSpecialTabs];
     }
     
-    // If filters were active, clear them when other tabs are selected
-    if ((isYearFilterActive || isSearchFilterActive) && filteredValues.length > 0 && !filteredValues.includes("")) {
-      setIsYearFilterActive(false);
-      setYearRange([1800, 2024]);
-      setTempYearRange([1800, 2024]);
-      setIsSearchFilterActive(false);
-      setSearchCriteria("title");
-      setSearchQuery("");
-      setActiveSearchQueries([]);
-      // Clear individual search fields
-      setTitleSearchQuery("");
-      setIdSearchQuery("");
-      setAuthorSearchQuery("");
-      // Clear separate category and language filters
-      setSelectedCategories([]);
-      setSelectedLanguages([]);
-    }
-    // If "All" is selected, clear all filters
-    else if (filteredValues.includes("")) {
-      console.log('All tab selected - clearing all filters');
-      setIsYearFilterActive(false);
-      setYearRange([1800, 2024]);
-      setTempYearRange([1800, 2024]);
-      setIsSearchFilterActive(false);
-      setSearchCriteria("title");
-      setSearchQuery("");
-      setActiveSearchQueries([]);
-      // Clear individual search fields
-      setTitleSearchQuery("");
-      setIdSearchQuery("");
-      setAuthorSearchQuery("");
-      // Clear separate category and language filters
-      setSelectedCategories([]);
-      setSelectedLanguages([]);
-    }
-    
-    console.log('Selected tabs:', filteredValues);
+    console.log('Final selected tabs:', filteredValues);
     setSelectedTabs(filteredValues);
   }, [selectedTabs, isYearFilterActive, isSearchFilterActive]);
 
@@ -656,188 +628,201 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
 
   return (
       <Tabs value={selectedTabs} onValueChange={handleTabChange}>
-          {/* Sticky filter and pagination container */}
-          <div className="sticky top-14 sm:top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 py-3 px-4">
-              <div className="mb-2 flex items-center">
-                  <div className='flex'>
-                      <div className="inline-flex flex-col w-full rounded-md md:w-auto md:flex-row mr-2" role="group">
-                          <TabsList>
-                              <TabsTrigger value="">
-                                  All
-                              </TabsTrigger>
-                              <span className="mx-1 h-full w-px bg-border self-center" />
-                              <DropdownMenu>
-                                <DropdownMenuTrigger className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm m-0.5 p-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-                                  isYearFilterActive 
-                                    ? 'bg-background text-foreground' 
-                                    : 'hover:bg-background/50'
-                                }`}>
-                                    {isYearFilterActive ? `Publication Year (${yearRange[0]} - ${yearRange[1]})` : 'Publication Year'}
-                                </DropdownMenuTrigger>
-
-                                <DropdownMenuPortal>
-                                    <DropdownMenuContent className='animate-slideUpAndFade w-80 p-4'>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-sm font-medium">
-                                                    Publication Year Range
-                                                </label>
-                                                {isYearFilterActive && (
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-xs text-muted-foreground">Active</span>
-                                                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <div className="px-2">
-                                                    <Slider
-                                                        value={tempYearRange}
-                                                        onValueChange={handleYearRangeChange}
-                                                        min={1800}
-                                                        max={2024}
-                                                        step={1}
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                                <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                                                    <span>1800</span>
-                                                    <span>2024</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm font-medium mt-1">
-                                                    <span>{tempYearRange[0]}</span>
-                                                    <span>{tempYearRange[1]}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                {isYearFilterActive && (
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="outline" 
-                                                        onClick={clearYearFilter}
-                                                        className="flex-1"
-                                                    >
-                                                        Clear Filter
-                                                    </Button>
-                                                )}
-                                                <Button 
-                                                    size="sm" 
-                                                    onClick={applyYearFilter}
-                                                    className="flex-1"
-                                                    disabled={tempYearRange[0] === 1800 && tempYearRange[1] === 2024 && !isYearFilterActive}
-                                                >
-                                                    {isYearFilterActive ? 'Update Filter' : 'Apply Filter'}
-                                                </Button>
-                                            </div>
-                                            {!isYearFilterActive && tempYearRange[0] === 1800 && tempYearRange[1] === 2024 && (
-                                                <div className="text-xs text-muted-foreground text-center">
-                                                    Adjust slider and click Apply to activate filter
-                                                </div>
-                                            )}
-                                        </div>
-                                    </DropdownMenuContent>
-                                </DropdownMenuPortal>
-                          </DropdownMenu>
-                          <DropdownMenu>
-                                <DropdownMenuTrigger className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm m-0.5 p-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 relative ${
-                                  isSearchFilterActive 
-                                    ? 'bg-background text-foreground shadow-sm' 
-                                    : 'hover:bg-background/50'
-                                }`}>
-                                    Search Options
-                                    {activeSearchQueries.length > 0 && (
-                                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full min-w-[1.25rem] h-5 flex items-center justify-center px-1">
-                                            {activeSearchQueries.length}
-                                        </span>
-                                    )}
-                                </DropdownMenuTrigger>
-
-                                <DropdownMenuPortal>
-                                    <DropdownMenuContent className='animate-slideUpAndFade w-80 p-4'>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-sm font-medium">
-                                                    Select Search Criteria
-                                                </label>
-                                                {isSearchFilterActive && (
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-xs text-muted-foreground">Active</span>
-                                                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            
-                                            <div className="space-y-2">
-                                                <div className="grid gap-2">
-                                                    {[
-                                                        { value: 'title', label: 'Title' },
-                                                        { value: 'id', label: 'ID' },
-                                                        { value: 'author', label: 'Author' }
-                                                    ].map((criterion) => (
-                                                        <Button
-                                                            key={criterion.value}
-                                                            variant={searchCriteria === criterion.value ? "default" : "outline"}
-                                                            size="sm"
-                                                            onClick={() => handleSearchCriteriaToggle(criterion.value)}
-                                                            className="justify-start"
-                                                        >
-                                                            {criterion.label}
-                                                        </Button>
-                                                    ))}
-                                                    
-                                                    {activeSearchQueries.length > 0 && (
-                                                        <>
-                                                            <DropdownMenuSeparator />
-                                                            <div className="text-xs text-muted-foreground mb-2">
-                                                                Active Search Queries ({activeSearchQueries.length}):
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                {activeSearchQueries.map((searchQuery) => (
-                                                                    <div key={searchQuery.id} className="flex items-center justify-between p-2 bg-primary/5 border border-primary/20 rounded-md">
-                                                                        <div className="flex items-center gap-2 text-xs">
-                                                                            <span className="px-2 py-1 bg-primary/10 rounded text-primary font-medium">
-                                                                                {searchQuery.criteria}
-                                                                            </span>
-                                                                            <span className="text-foreground">{searchQuery.query}</span>
-                                                                        </div>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => removeSearchQuery(searchQuery.id)}
-                                                                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                                            title="Remove this search query"
-                                                                        >
-                                                                            ×
-                                                                        </Button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                            <div className="text-xs text-muted-foreground italic mt-2 p-2 bg-muted/50 rounded">
-                                                                💡 Select criteria above and use the search bar to add more queries
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                    
-                                                    {activeSearchQueries.length > 0 && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={clearSearchFilter}
-                                                            className="justify-start text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                                        >
-                                                            Clear All Search Filters
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </DropdownMenuContent>
-                                </DropdownMenuPortal>
-                          </DropdownMenu>
-                      </TabsList>
+          {/* Sticky filter and pagination container - optimized for true mobile */}
+          <div className="sticky top-14 md:top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 py-1 md:py-3 px-0 md:px-4">
+              {/* Main filter controls row */}
+              <div className="mb-1 md:mb-2 flex flex-col gap-2 md:gap-2 md:flex-row md:items-center">
+                  {/* Filter controls section */}
+                  <div className='flex flex-col w-full md:w-auto md:flex-row gap-2 md:gap-0'>
+                      <div className="inline-flex flex-col w-full rounded-md md:w-auto md:flex-row mr-0 md:mr-2" role="group">
+                          {/* All tab and filter dropdowns - always stacked on small screens */}
+                          <div className="flex flex-col md:flex-row gap-1 md:gap-0 w-full md:w-auto">
+                              <TabsList className="w-full md:w-auto overflow-x-auto min-h-[36px] flex flex-wrap md:flex-nowrap gap-1">
+                                  <TabsTrigger value="" className="flex-1 md:flex-none text-xs md:text-sm">
+                                      All
+                                  </TabsTrigger>
+                                  <span className="mx-1 h-full w-px bg-border self-center hidden md:block" />
+                                  
+                                  {/* Publication Year Tab Trigger */}
+                                  <TabsTrigger 
+                                      value="publication-year" 
+                                      className={`flex-1 md:flex-none text-xs md:text-sm relative ${
+                                          isYearFilterActive ? 'bg-primary text-primary-foreground' : ''
+                                      }`}
+                                  >
+                                      {isYearFilterActive ? `Year (${yearRange[0]}-${yearRange[1]})` : 'Publication Year'}
+                                      {isYearFilterActive && (
+                                          <span className="absolute -top-1 -right-1 bg-primary-foreground text-primary text-xs rounded-full w-2 h-2"></span>
+                                      )}
+                                  </TabsTrigger>
+                                  
+                                  {/* Search Options Tab Trigger */}
+                                  <TabsTrigger 
+                                      value="search-options" 
+                                      className={`flex-1 md:flex-none text-xs md:text-sm relative ${
+                                          isSearchFilterActive ? 'bg-primary text-primary-foreground' : ''
+                                      }`}
+                                  >
+                                      Search Options
+                                      {activeSearchQueries.length > 0 && (
+                                          <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full min-w-[1.25rem] h-5 flex items-center justify-center px-1">
+                                              {activeSearchQueries.length}
+                                          </span>
+                                      )}
+                                  </TabsTrigger>
+                              </TabsList>
+                              
+                              {/* Tab Content for Publication Year */}
+                              {selectedTabs.includes('publication-year') && (
+                                  <div className="mt-2 p-4 border rounded-lg bg-background w-full md:w-80">
+                                      <div className="space-y-4">
+                                          <div className="flex items-center justify-between">
+                                              <label className="text-sm font-medium">
+                                                  Publication Year Range
+                                              </label>
+                                              {isYearFilterActive && (
+                                                  <div className="flex items-center gap-1">
+                                                      <span className="text-xs text-muted-foreground">Active</span>
+                                                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                                  </div>
+                                              )}
+                                          </div>
+                                          <div>
+                                              <div className="px-2">
+                                                  <Slider
+                                                      value={tempYearRange}
+                                                      onValueChange={handleYearRangeChange}
+                                                      min={1800}
+                                                      max={2024}
+                                                      step={1}
+                                                      className="w-full"
+                                                  />
+                                              </div>
+                                              <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                                                  <span>1800</span>
+                                                  <span>2024</span>
+                                              </div>
+                                              <div className="flex justify-between text-sm font-medium mt-1">
+                                                  <span>{tempYearRange[0]}</span>
+                                                  <span>{tempYearRange[1]}</span>
+                                              </div>
+                                          </div>
+                                          <div className="flex gap-2">
+                                              {isYearFilterActive && (
+                                                  <Button 
+                                                      size="sm" 
+                                                      variant="outline" 
+                                                      onClick={clearYearFilter}
+                                                      className="flex-1"
+                                                  >
+                                                      Clear Filter
+                                                  </Button>
+                                              )}
+                                              <Button 
+                                                  size="sm" 
+                                                  onClick={applyYearFilter}
+                                                  className="flex-1"
+                                                  disabled={tempYearRange[0] === 1800 && tempYearRange[1] === 2024 && !isYearFilterActive}
+                                              >
+                                                  {isYearFilterActive ? 'Update Filter' : 'Apply Filter'}
+                                              </Button>
+                                          </div>
+                                          {!isYearFilterActive && tempYearRange[0] === 1800 && tempYearRange[1] === 2024 && (
+                                              <div className="text-xs text-muted-foreground text-center">
+                                                  Adjust slider and click Apply to activate filter
+                                              </div>
+                                          )}
+                                      </div>
+                                  </div>
+                              )}
+                              
+                              {/* Tab Content for Search Options */}
+                              {selectedTabs.includes('search-options') && (
+                                  <div className="mt-2 p-4 border rounded-lg bg-background w-full md:w-80">
+                                      <div className="space-y-4">
+                                          <div className="flex items-center justify-between">
+                                              <label className="text-sm font-medium">
+                                                  Select Search Criteria
+                                              </label>
+                                              {isSearchFilterActive && (
+                                                  <div className="flex items-center gap-1">
+                                                      <span className="text-xs text-muted-foreground">Active</span>
+                                                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                                  </div>
+                                              )}
+                                          </div>
+                                          
+                                          <div className="space-y-2">
+                                              <div className="grid gap-2">
+                                                  {[
+                                                      { value: 'title', label: 'Title' },
+                                                      { value: 'id', label: 'ID' },
+                                                      { value: 'author', label: 'Author' }
+                                                  ].map((criterion) => (
+                                                      <Button
+                                                          key={criterion.value}
+                                                          variant={searchCriteria === criterion.value ? "default" : "outline"}
+                                                          size="sm"
+                                                          onClick={() => handleSearchCriteriaToggle(criterion.value)}
+                                                          className="justify-start"
+                                                      >
+                                                          {criterion.label}
+                                                      </Button>
+                                                  ))}
+                                                  
+                                                  {activeSearchQueries.length > 0 && (
+                                                      <>
+                                                          <div className="border-t pt-2 mt-2">
+                                                              <div className="text-xs text-muted-foreground mb-2">
+                                                                  Active Search Queries ({activeSearchQueries.length}):
+                                                              </div>
+                                                              <div className="space-y-2">
+                                                                  {activeSearchQueries.map((searchQuery) => (
+                                                                      <div key={searchQuery.id} className="flex items-center justify-between p-2 bg-primary/5 border border-primary/20 rounded-md">
+                                                                          <div className="flex items-center gap-2 text-xs">
+                                                                              <span className="px-2 py-1 bg-primary/10 rounded text-primary font-medium">
+                                                                                  {searchQuery.criteria}
+                                                                              </span>
+                                                                              <span className="text-foreground">{searchQuery.query}</span>
+                                                                          </div>
+                                                                          <Button
+                                                                              variant="ghost"
+                                                                              size="sm"
+                                                                              onClick={() => removeSearchQuery(searchQuery.id)}
+                                                                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                                              title="Remove this search query"
+                                                                          >
+                                                                              ×
+                                                                          </Button>
+                                                                      </div>
+                                                                  ))}
+                                                              </div>
+                                                              <div className="text-xs text-muted-foreground italic mt-2 p-2 bg-muted/50 rounded">
+                                                                  💡 Select criteria above and use the search bar to add more queries
+                                                              </div>
+                                                          </div>
+                                                      </>
+                                                  )}
+                                                  
+                                                  {activeSearchQueries.length > 0 && (
+                                                      <Button
+                                                          variant="outline"
+                                                          size="sm"
+                                                          onClick={clearSearchFilter}
+                                                          className="justify-start text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                                      >
+                                                          Clear All Search Filters
+                                                      </Button>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              )}
                   </div>
+              </div>
 
-                  <form className="flex items-center" onSubmit={(e) => {
+              <form className="flex items-center w-full md:w-auto mt-1 md:mt-0" onSubmit={(e) => {
                       e.preventDefault();
                       if (searchCriteria && searchQuery.trim()) {
                           applySearchFilter();
@@ -845,8 +830,8 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
                   }}>
                       <label className="sr-only">Search</label>
                       <div className="relative w-full">
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                              <svg aria-hidden="true" className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <div className="absolute inset-y-0 left-0 flex items-center pl-2 md:pl-3 pointer-events-none">
+                              <svg aria-hidden="true" className="w-4 h-4 md:w-5 md:h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                   <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                               </svg>
                           </div>
@@ -856,7 +841,7 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
                               value={searchQuery}
                               onChange={(e) => handleSearchQueryChange(e.target.value)}
                               disabled={!searchCriteria}
-                              className="outline-gray-400 block w-full p-2 pl-10 text-sm font-medium border border-gray-300 rounded-lg bg-muted focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed" 
+                              className="outline-gray-400 block w-full p-2 pl-8 md:pl-10 text-xs md:text-sm font-medium border border-gray-300 rounded-lg bg-muted focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed min-h-[36px]" 
                               placeholder={searchCriteria 
                                 ? `Search by ${searchCriteria}...${activeSearchQueries.length > 0 ? ` (${activeSearchQueries.length} active)` : ''}` 
                                 : "Select search criteria"} 
@@ -865,17 +850,17 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
                   </form>
               </div>
 
-              <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" variant="outline" className="hover:bg-black hover:text-white h-8 gap-1" onClick={handleExportCatalog}>
-                      <File className="h-3.5 w-3.5" />
-                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              <div className="flex flex-col gap-1 md:flex-row md:items-center md:gap-2 md:ml-auto mt-1 md:mt-0">
+          <Button size="sm" variant="outline" className="hover:bg-black hover:text-white h-8 gap-1 w-full hidden md:flex md:w-auto text-xs md:text-sm" onClick={handleExportCatalog}>
+                      <File className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                      <span className="md:sr-only lg:not-sr-only lg:whitespace-nowrap">
                           Export Catalog
                       </span>
                   </Button>
                   {isAdmin && (
-                    <Button size="sm" className="hover:bg-white hover:text-black h-8 gap-1 border" onClick={() => setCreateModalOpen(true)}>
-                        <PlusCircle className="h-3.5 w-3.5" />
-                        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                    <Button size="sm" className="hover:bg-white hover:text-black h-8 gap-1 border w-full md:w-auto text-xs md:text-sm" onClick={() => setCreateModalOpen(true)}>
+                        <PlusCircle className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                        <span className="md:sr-only lg:not-sr-only lg:whitespace-nowrap">
                             Add Book
                         </span>
                     </Button>
@@ -883,55 +868,118 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
               </div>
           </div>
 
-          <div className='mb-2'>
-              <TabsList>
-                  {/* Genre/Category Tabs */}
-                  <TabsTrigger value="CLB" title="Class books">CLB</TabsTrigger>
-                  <TabsTrigger value="DDL" title="Lives of Direct Disciples of Sri Ramakrishna">DDL</TabsTrigger>
-                  <TabsTrigger value="DMW" title="Divine mother worship">DMW</TabsTrigger>
-                  <TabsTrigger value="GIT" title="Gita">GIT</TabsTrigger>
-                  <TabsTrigger value="HIS" title="History">HIS</TabsTrigger>
-                  <TabsTrigger value="HMS" title="Holy Mother, Life and Teachings">HMS</TabsTrigger>
-                  <TabsTrigger value="KID" title="Children">KID</TabsTrigger>
-                  <TabsTrigger value="MNP" title="Mythology & Puranas">MNP</TabsTrigger>
-                  <TabsTrigger value="ODL" title="Lives of Other Disciples">ODL</TabsTrigger>
-                  <TabsTrigger value="OPH" title="Other Philosophies">OPH</TabsTrigger>
-                  <TabsTrigger value="PIL" title="Pilgrimage & Tourism">PIL</TabsTrigger>
-                  <TabsTrigger value="SCI" title="Science">SCI</TabsTrigger>
-                  <TabsTrigger value="SER" title="Service to humanity">SER</TabsTrigger>
-                  <TabsTrigger value="SHR" title="Subset of Hindu religion">SHR</TabsTrigger>
-                  <TabsTrigger value="SMH" title="Songs, Mantra, Shlokas, Prayers & Hymns">SMH</TabsTrigger>
-                  <TabsTrigger value="SNK" title="Sankara">SNK</TabsTrigger>
-                  <TabsTrigger value="SPD" title="Spiritual Practice & Discipline">SPD</TabsTrigger>
-                  <TabsTrigger value="SRK" title="Sri Ramakrishna, Life & Teachings">SRK</TabsTrigger>
-                  <TabsTrigger value="VED" title="Vedanta Philosophy">VED</TabsTrigger>
-                  <TabsTrigger value="VIV" title="Swami Vivekananda, Life & Teachings">VIV</TabsTrigger>
-                  <TabsTrigger value="UVO" title="Upanishads, Vedas, Sutras etc.">UVO</TabsTrigger>
-                  
-                  {/* Visual separator between genres and languages */}
-                  <span className="mx-2 h-full w-px bg-border self-center" />
-                  
-                  {/* Language Tabs */}
-                  <TabsTrigger value="E" title="English">EN</TabsTrigger>
-                  <TabsTrigger value="S" title="Sanskrit">SA</TabsTrigger>
-                  <TabsTrigger value="H" title="Hindi">HI</TabsTrigger>
-                  <TabsTrigger value="B" title="Bengali">BN</TabsTrigger>
-                  <TabsTrigger value="T" title="Tamil">TA</TabsTrigger>
-              </TabsList>
+          {/* Category and Language Tabs - Responsive layout */}
+          <div className='mb-1 md:mb-2'>
+            {/* Mobile: Multi-row layout to prevent overflow */}
+            <div className="md:hidden space-y-1">
+              {/* Mobile Row 1: First set of categories */}
+              <div className="w-full overflow-hidden px-1">
+                <div className="flex items-center gap-1">
+                  <div className="overflow-x-auto scrollbar-hide flex-1">
+                    <TabsList className="flex min-w-full w-max overflow-visible scrollbar-hide min-h-[20px] p-0">
+                      <TabsTrigger value="CLB" title="Class books" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">CLB</TabsTrigger>
+                      <TabsTrigger value="DDL" title="Lives of Direct Disciples of Sri Ramakrishna" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">DDL</TabsTrigger>
+                      <TabsTrigger value="DMW" title="Divine mother worship" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">DMW</TabsTrigger>
+                      <TabsTrigger value="GIT" title="Gita" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">GIT</TabsTrigger>
+                      <TabsTrigger value="HIS" title="History" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">HIS</TabsTrigger>
+                      <TabsTrigger value="HMS" title="Holy Mother, Life and Teachings" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">HMS</TabsTrigger>
+                      <TabsTrigger value="KID" title="Children" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">KID</TabsTrigger>
+                      <TabsTrigger value="MNP" title="Mythology & Puranas" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">MNP</TabsTrigger>
+                      <TabsTrigger value="ODL" title="Lives of Other Disciples" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">ODL</TabsTrigger>
+                      <TabsTrigger value="OPH" title="Other Philosophies" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">OPH</TabsTrigger>
+                      <TabsTrigger value="PIL" title="Pilgrimage & Tourism" className="flex-shrink-0 text-[9px] px-0.5 min-w-[24px]">PIL</TabsTrigger>
+                    </TabsList>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Mobile Row 2: Second set of categories */}
+              <div className="w-full overflow-hidden px-1">
+                <div className="flex items-center gap-1">
+                    <div className="overflow-x-auto scrollbar-hide flex-1">
+                      <TabsList className="flex min-w-full w-max overflow-visible scrollbar-hide min-h-[20px] p-0">
+                        <TabsTrigger value="SCI" title="Science" className="flex-shrink-0 min-w-[24px] text-[9px] px-0.5">SCI</TabsTrigger>
+                        <TabsTrigger value="SER" title="Service to humanity" className="flex-shrink-0 min-w-[24px] text-[9px] px-0.5">SER</TabsTrigger>
+                        <TabsTrigger value="SHR" title="Subset of Hindu religion" className="flex-shrink-0 min-w-[24px] text-[9px] px-0.5">SHR</TabsTrigger>
+                        <TabsTrigger value="SMH" title="Songs, Mantra, Shlokas, Prayers & Hymns" className="flex-shrink-0 min-w-[24px] text-[9px] px-0.5">SMH</TabsTrigger>
+                        <TabsTrigger value="SNK" title="Sankara" className="flex-shrink-0 min-w-[24px] text-[9px] px-0.5">SNK</TabsTrigger>
+                        <TabsTrigger value="SPD" title="Spiritual Practice & Discipline" className="flex-shrink-0 min-w-[24px] text-[9px] px-0.5">SPD</TabsTrigger>
+                        <TabsTrigger value="SRK" title="Sri Ramakrishna, Life & Teachings" className="flex-shrink-0 min-w-[24px] text-[9px] px-0.5">SRK</TabsTrigger>
+                        <TabsTrigger value="VED" title="Vedanta Philosophy" className="flex-shrink-0 min-w-[24px] text-[9px] px-0.5">VED</TabsTrigger>
+                        <TabsTrigger value="VIV" title="Swami Vivekananda, Life & Teachings" className="flex-shrink-0 min-w-[24px] text-[9px] px-0.5">VIV</TabsTrigger>
+                        <TabsTrigger value="UVO" title="Upanishads, Vedas, Sutras etc." className="flex-shrink-0 min-w-[24px] text-[9px] px-0.5">UVO</TabsTrigger>
+                      </TabsList>
+                    </div>
+                </div>
+              </div>
+              
+              {/* Mobile Row 3: Languages */}
+              <div className="w-full overflow-hidden px-1">
+                <div className="flex items-center gap-1">
+                  <div className="overflow-x-auto scrollbar-hide flex-1">
+                    <TabsList className="flex min-w-full w-max overflow-visible scrollbar-hide min-h-[20px] p-0">
+                      <TabsTrigger value="E" title="English" className="flex-shrink-0 text-[9px] px-1 min-w-[28px]">EN</TabsTrigger>
+                      <TabsTrigger value="S" title="Sanskrit" className="flex-shrink-0 text-[9px] px-1 min-w-[28px]">SA</TabsTrigger>
+                      <TabsTrigger value="H" title="Hindi" className="flex-shrink-0 text-[9px] px-1 min-w-[28px]">HI</TabsTrigger>
+                      <TabsTrigger value="B" title="Bengali" className="flex-shrink-0 text-[9px] px-1 min-w-[28px]">BN</TabsTrigger>
+                      <TabsTrigger value="T" title="Tamil" className="flex-shrink-0 text-[9px] px-1 min-w-[28px]">TA</TabsTrigger>
+                    </TabsList>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop: Single row layout with horizontal scrolling */}
+            <div className="hidden md:block w-full overflow-hidden px-1">
+              <div className="overflow-x-auto scrollbar-hide">
+                <TabsList className="flex min-w-full w-max overflow-visible scrollbar-hide min-h-[36px] p-0 justify-start">
+                  {/* All Categories */}
+                  <TabsTrigger value="CLB" title="Class books" className="flex-shrink-0 text-xs px-2 min-w-[36px]">CLB</TabsTrigger>
+                  <TabsTrigger value="DDL" title="Lives of Direct Disciples of Sri Ramakrishna" className="flex-shrink-0 text-xs px-2 min-w-[36px]">DDL</TabsTrigger>
+                  <TabsTrigger value="DMW" title="Divine mother worship" className="flex-shrink-0 text-xs px-2 min-w-[36px]">DMW</TabsTrigger>
+                  <TabsTrigger value="GIT" title="Gita" className="flex-shrink-0 text-xs px-2 min-w-[36px]">GIT</TabsTrigger>
+                  <TabsTrigger value="HIS" title="History" className="flex-shrink-0 text-xs px-2 min-w-[36px]">HIS</TabsTrigger>
+                  <TabsTrigger value="HMS" title="Holy Mother, Life and Teachings" className="flex-shrink-0 text-xs px-2 min-w-[36px]">HMS</TabsTrigger>
+                  <TabsTrigger value="KID" title="Children" className="flex-shrink-0 text-xs px-2 min-w-[36px]">KID</TabsTrigger>
+                  <TabsTrigger value="MNP" title="Mythology & Puranas" className="flex-shrink-0 text-xs px-2 min-w-[36px]">MNP</TabsTrigger>
+                  <TabsTrigger value="ODL" title="Lives of Other Disciples" className="flex-shrink-0 text-xs px-2 min-w-[36px]">ODL</TabsTrigger>
+                  <TabsTrigger value="OPH" title="Other Philosophies" className="flex-shrink-0 text-xs px-2 min-w-[36px]">OPH</TabsTrigger>
+                  <TabsTrigger value="PIL" title="Pilgrimage & Tourism" className="flex-shrink-0 text-xs px-2 min-w-[36px]">PIL</TabsTrigger>
+                  <TabsTrigger value="SCI" title="Science" className="flex-shrink-0 text-xs px-2 min-w-[36px]">SCI</TabsTrigger>
+                  <TabsTrigger value="SER" title="Service to humanity" className="flex-shrink-0 text-xs px-2 min-w-[36px]">SER</TabsTrigger>
+                  <TabsTrigger value="SHR" title="Subset of Hindu religion" className="flex-shrink-0 text-xs px-2 min-w-[36px]">SHR</TabsTrigger>
+                  <TabsTrigger value="SMH" title="Songs, Mantra, Shlokas, Prayers & Hymns" className="flex-shrink-0 text-xs px-2 min-w-[36px]">SMH</TabsTrigger>
+                  <TabsTrigger value="SNK" title="Sankara" className="flex-shrink-0 text-xs px-2 min-w-[36px]">SNK</TabsTrigger>
+                  <TabsTrigger value="SPD" title="Spiritual Practice & Discipline" className="flex-shrink-0 text-xs px-2 min-w-[36px]">SPD</TabsTrigger>
+                  <TabsTrigger value="SRK" title="Sri Ramakrishna, Life & Teachings" className="flex-shrink-0 text-xs px-2 min-w-[36px]">SRK</TabsTrigger>
+                  <TabsTrigger value="VED" title="Vedanta Philosophy" className="flex-shrink-0 text-xs px-2 min-w-[36px]">VED</TabsTrigger>
+                  <TabsTrigger value="VIV" title="Swami Vivekananda, Life & Teachings" className="flex-shrink-0 text-xs px-2 min-w-[36px]">VIV</TabsTrigger>
+                  <TabsTrigger value="UVO" title="Upanishads, Vedas, Sutras etc." className="flex-shrink-0 text-xs px-2 min-w-[36px]">UVO</TabsTrigger>
+                  {/* Visual separator */}
+                  <span className="flex-shrink-0 mx-1 h-full w-px bg-border self-center" />
+                  {/* Languages */}
+                  <TabsTrigger value="E" title="English" className="flex-shrink-0 text-xs px-3 min-w-[40px]">English</TabsTrigger>
+                  <TabsTrigger value="S" title="Sanskrit" className="flex-shrink-0 text-xs px-3 min-w-[40px]">Sanskrit</TabsTrigger>
+                  <TabsTrigger value="H" title="Hindi" className="flex-shrink-0 text-xs px-3 min-w-[40px]">Hindi</TabsTrigger>
+                  <TabsTrigger value="B" title="Bengali" className="flex-shrink-0 text-xs px-3 min-w-[40px]">Bengali</TabsTrigger>
+                  <TabsTrigger value="T" title="Tamil" className="flex-shrink-0 text-xs px-3 min-w-[40px]">Tamil</TabsTrigger>
+                </TabsList>
+              </div>
+            </div>
           </div>
 
-          {/* Tabs-based pagination controls */}
-          <div className="mb-4 flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
+          {/* Optimized pagination for small mobile screens */}
+          <div className="mb-2 md:mb-4 flex flex-col gap-2 md:gap-3 md:flex-row md:items-center md:justify-between px-1">
+              <div className="text-xs md:text-sm text-muted-foreground text-center md:text-left">
                   Showing {((paginationInfo.page - 1) * paginationInfo.pageSize) + 1}-{Math.min(paginationInfo.page * paginationInfo.pageSize, paginationInfo.total)} of {paginationInfo.total} results
               </div>
-              <div className="flex items-center gap-2">
-                  <TabsList>
+              <div className="flex items-center justify-center md:justify-end gap-1 md:gap-2">
+                  <TabsList className="overflow-x-auto max-w-full min-h-[32px] md:min-h-[40px]">
                       <TabsTrigger 
                           value={`page-first`}
                           onClick={goToFirstPage}
                           disabled={currentPage === 1}
-                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200"
+                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200 min-w-fit text-xs md:text-sm px-1.5 md:px-3"
                       >
                           First
                       </TabsTrigger>
@@ -939,42 +987,45 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
                           value={`page-prev`}
                           onClick={goToPreviousPage}
                           disabled={!paginationInfo.hasPrev}
-                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200"
+                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200 min-w-fit text-xs md:text-sm px-1.5 md:px-3"
                       >
-                          Previous
+                          Prev
                       </TabsTrigger>
                       
-                      {/* Page number tabs */}
+                      {/* Page number tabs - more compact for mobile */}
                       {(() => {
                           const pages = [];
                           const totalPages = paginationInfo.totalPages;
                           const current = currentPage;
                           
+                          // Use smaller page range for better mobile experience
+                          const pageRange = 1; // Show fewer pages for mobile
+                          
                           // Always show first page
-                          if (current > 3) {
+                          if (current > pageRange + 1) {
                               pages.push(
                                   <TabsTrigger 
                                       key={1}
                                       value={`page-${1}`}
                                       onClick={() => goToPage(1)}
-                                      className={`transition-colors duration-200 hover:bg-black hover:text-white ${current === 1 ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
+                                      className={`transition-colors duration-200 hover:bg-black hover:text-white min-w-fit text-xs md:text-sm px-1.5 md:px-3 ${current === 1 ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
                                   >
                                       1
                                   </TabsTrigger>
                               );
-                              if (current > 4) {
-                                  pages.push(<span key="ellipsis1" className="px-2 text-muted-foreground">...</span>);
+                              if (current > pageRange + 2) {
+                                  pages.push(<span key="ellipsis1" className="px-0.5 md:px-2 text-muted-foreground text-xs md:text-sm">...</span>);
                               }
                           }
                           
                           // Show pages around current page
-                          for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) {
+                          for (let i = Math.max(1, current - pageRange); i <= Math.min(totalPages, current + pageRange); i++) {
                               pages.push(
                                   <TabsTrigger 
                                       key={i}
                                       value={`page-${i}`}
                                       onClick={() => goToPage(i)}
-                                      className={`transition-colors duration-200 hover:bg-black hover:text-white ${current === i ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
+                                      className={`transition-colors duration-200 hover:bg-black hover:text-white min-w-fit text-xs md:text-sm px-1.5 md:px-3 ${current === i ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
                                   >
                                       {i}
                                   </TabsTrigger>
@@ -982,16 +1033,16 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
                           }
                           
                           // Always show last page
-                          if (current < totalPages - 2) {
-                              if (current < totalPages - 3) {
-                                  pages.push(<span key="ellipsis2" className="px-2 text-muted-foreground">...</span>);
+                          if (current < totalPages - pageRange) {
+                              if (current < totalPages - pageRange - 1) {
+                                  pages.push(<span key="ellipsis2" className="px-0.5 md:px-2 text-muted-foreground text-xs md:text-sm">...</span>);
                               }
                               pages.push(
                                   <TabsTrigger 
                                       key={totalPages}
                                       value={`page-${totalPages}`}
                                       onClick={() => goToPage(totalPages)}
-                                      className={`transition-colors duration-200 hover:bg-black hover:text-white ${current === totalPages ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
+                                      className={`transition-colors duration-200 hover:bg-black hover:text-white min-w-fit text-xs md:text-sm px-1.5 md:px-3 ${current === totalPages ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
                                   >
                                       {totalPages}
                                   </TabsTrigger>
@@ -1005,7 +1056,7 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
                           value={`page-next`}
                           onClick={goToNextPage}
                           disabled={!paginationInfo.hasNext}
-                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200"
+                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200 min-w-fit text-xs md:text-sm px-1.5 md:px-3"
                       >
                           Next
                       </TabsTrigger>
@@ -1013,7 +1064,7 @@ export default function ProductsPageClient({ catalog, isAdmin }: { catalog: any;
                           value={`page-last`}
                           onClick={goToLastPage}
                           disabled={currentPage === paginationInfo.totalPages}
-                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200"
+                          className="data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none hover:bg-black hover:text-white transition-colors duration-200 min-w-fit text-xs md:text-sm px-1.5 md:px-3"
                       >
                           Last
                       </TabsTrigger>
