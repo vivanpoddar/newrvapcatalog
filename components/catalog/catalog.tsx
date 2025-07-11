@@ -534,13 +534,7 @@ export default function Catalog({ data, isAdmin = false }: { data: any; isAdmin?
                               <TooltipContent>
                                 <div className="space-y-1">
                                   <div className="text-s font-bold leading-none ">{order.checkoutDetails.userDisplay}</div>
-                                  {order.checkoutDetails.userEmail && (
-                                      <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userEmail}</div>
-                                  )}
-                                  {order.checkoutDetails.userPhone && (
-                                      <div className="text-xs leading-none text-muted-foreground">{order.checkoutDetails.userPhone}</div>
-                                  )}
-                                    <div className="text-xs leading-none text-muted-foreground">Since {order.checkoutDetails.checkedOutDate}</div>
+                                  <div className="text-xs leading-none text-muted-foreground">Since {order.checkoutDetails.checkedOutDate}</div>
                                 </div>
                               </TooltipContent>
                             </Tooltip>
